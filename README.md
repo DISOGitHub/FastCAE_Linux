@@ -12,7 +12,7 @@
 2. git克隆，使用git克隆代码仓库，后续可以不断拉取更新。
 
 #文件夹结构
-1. Code    FastCAE源码
+1. Code    FastCAE_Linux源码
 2. OCC     OpenCASCADE7.2.0编译的第三方库，适用于Linux平台
 3. VTK     VTK7.1.0编译的第三方库，适用于Linux平台
 4. output  程序的编译输出
