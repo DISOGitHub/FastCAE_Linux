@@ -268,7 +268,7 @@ namespace GeometryWidget
 			if (ok)
 				ok = fabs(degree) < 0.0000001 ? false : true;
 		}
-		if (_ui->comboBoxOption->currentIndex() == 0() && _axisSet == nullptr)
+		if (_ui->comboBoxOption->currentIndex() == 0 && _axisSet == nullptr)
 			ok = false;
 		if (!ok)
 		{
