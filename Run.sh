@@ -1,6 +1,6 @@
 #!/bin/bash
 
-path=$(PWD)
+path=$(pwd)
 sudo chmod 666 /etc/ld.so.conf
 sudo echo $path/output/bin >> /etc/ld.so.conf
 sudo chmod 644 /etc/ld.so.conf
