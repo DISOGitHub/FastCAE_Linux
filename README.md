@@ -34,3 +34,10 @@
 4. Copy_Pys.sh                将程序运行必需的python脚本拷贝到运行目录
 5. _Create_Project.sh         存在于每个模块中，作用与Create_Linux64_Project.sh相同，区别在于各模块只是更新各自的VS工程文件
 6. _Install_Python.sh          用于配置程序运行所需要python3.7.0的环境
+
+
+#帮助文档
+http://www.fastcae.com/document.html
+
+#社区论坛
+http://disc.fastcae.com/forum.php
