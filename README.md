@@ -41,3 +41,7 @@ http://www.fastcae.com/document.html
 
 #社区论坛
 http://disc.fastcae.com/forum.php
+
+#Windows版本地址
+https://github.com/DISOGitHub/FastCAE
+
