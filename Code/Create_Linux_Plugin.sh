@@ -12,9 +12,9 @@ make ver=release
 #qmake -o Makefile ETSPlugin.pro
 #make ver=release
 
-cd ../PluginHull  
-qmake -o Makefile HullCutPlugin.pro
-make ver=release
+#cd ../PluginHull  
+#qmake -o Makefile HullCutPlugin.pro
+#make ver=release
 
 cd ../PluginMachinery 
 qmake -o Makefile MachineryPlugin.pro
