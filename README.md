@@ -3,8 +3,8 @@
 #特别注意：
 1. 源码绝对路径中不要出现中文字符;
 2. 源码文件夹中不要出现空格(){}*/?|\等特殊字符
-3. 要求必须安装gcc,g++,Qt5.4.2（自行安装），python3.7.0
-4. 建议使用Linux系统为Ubuntu16.04
+3. 要求必须安装gcc,g++,Qt5.14.2（自行安装），python3.7.0
+4. 建议使用Linux系统为Ubuntu20.04
 5. 建议自行配置python3.7.0环境
 
 #源码下载：
@@ -17,8 +17,8 @@
 
 #文件夹结构：
 1. Code    FastCAE_Linux源码
-2. OCC     OpenCASCADE7.2.0编译的第三方库，适用于Linux平台
-3. VTK     VTK7.1.0编译的第三方库，适用于Linux平台
+2. OCC     OpenCASCADE7.5.0编译的第三方库，适用于Linux平台
+3. VTK     VTK9.0.1编译的第三方库，适用于Linux平台
 4. output  程序的编译输出
 5. cgns     cgns第三方库，适用于Linux平台
 6. quazip   压缩文件的第三方库
