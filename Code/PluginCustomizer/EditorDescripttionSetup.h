@@ -115,7 +115,9 @@ namespace FastCAEDesigner
 		DataProperty::ParameterBase* GetSelectedGroupParameter();
 
 		//20200326 xuxinwei  获取算例名称
-		QString getCaseName(ModelBase* model);
+		int getCaseType(ModelBase* model);
+		void deleteGroupAndParameters(DataProperty::ParameterGroup* group);
+		void removeNameFromList(DataProperty::ParameterBase* base);
 
 	private:
 		//当前操作对象枚举说明
@@ -139,7 +141,9 @@ namespace FastCAEDesigner
 
 		//20200326   xuxinwei  仿真和求解所有参数列表
 		QList<DataProperty::ParameterBase*> _parameterList;
-		
+		QList<DataProperty::ParameterGroup*> _parameterGroupList;
+		int _treeType{};
+		int _currentType{ -1 };
 	};
 }
 #endif // EDITORDESCRIPTTIONSETUP_H

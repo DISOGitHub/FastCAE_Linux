@@ -16,6 +16,11 @@
 #include "SolverControl/MesherControlerBase.h"
 #include "DialogMeshSetMerge.h"
 #include "DialogMeshRename.h"
+#include "Gmsh/GmshSettingData.h"
+#include "Gmsh/DialogSolidMesh.h"
+#include "Gmsh/DialogSurfaceMesh.h"
+#include "DataProperty/DataBase.h"
+#include <QDebug>
 
 namespace MainWidget
 {
@@ -39,7 +44,9 @@ namespace MainWidget
 		connect(_mainWindow, SIGNAL(updateSetTreeSig()), this, SLOT(updateMeshSetTree()));
 		connect(this, SIGNAL(itemClicked(QTreeWidgetItem*, int)), this, SLOT(singleClicked(QTreeWidgetItem*, int)));
 		connect(this, SIGNAL(updateDisplay(int, bool)), _mainWindow, SIGNAL(updateMeshDispalyStateSig(int, bool)));
+		connect(this, SIGNAL(updateMeshSetVisible(MeshData::MeshSet*)), _mainWindow, SIGNAL(updateMeshSetVisibleSig(MeshData::MeshSet*)));
 		connect(this, SIGNAL(removeMeshData(int)), _mainWindow, SIGNAL(removeMeshActorSig(int)));
+		connect(this, SIGNAL(removeSetData(int)), _mainWindow, SIGNAL(removeSetDataSig(int)));
 		connect(this, SIGNAL(updateActionStates()), _mainWindow, SIGNAL(updateActionStatesSig()));
 		connect(this, SIGNAL(disPlayProp(DataProperty::DataBase*)), _mainWindow, SIGNAL(updateProperty(DataProperty::DataBase*)));
 		connect(this, SIGNAL(higtLightSet(MeshData::MeshSet*)), _mainWindow, SIGNAL(highLightSetSig(MeshData::MeshSet*)));
@@ -49,6 +56,8 @@ namespace MainWidget
 		connect(this, SIGNAL(startMesherPySig(QString)), this, SLOT(startMesher(QString)));
 
 		connect(this, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this, SLOT(itemStatesChanged(QTreeWidgetItem*, int)));
+		connect(_mainWindow, SIGNAL(preWindowOpenedSig(MainWidget::PreWindow*)), this, SLOT(preWindowOpened(MainWidget::PreWindow*)));
+		connect(this, SIGNAL(editMesh(int, int)), _mainWindow, SIGNAL(editMeshSig(int,int)));
 	}
 	MeshWidget::~MeshWidget()
 	{
@@ -88,10 +97,13 @@ namespace MainWidget
 		_setRoot->takeChildren();
 		_setRoot->setText(0, tr("Set"));
 		const int n = _data->getMeshSetCount();
+
+		blockSignals(true);
 		for (int i = 0; i < n; ++i)
 		{
 			MeshData::MeshSet* s = _data->getMeshSetAt(i);
 			const QString name = s->getName();
+			const bool visible = s->isVisible();
 			const int  id = s->getID();
 			QTreeWidgetItem* item = new QTreeWidgetItem(_setRoot, TreeItemType::MeshSetChild);
 			item->setData(0, Qt::UserRole, id);
@@ -102,7 +114,12 @@ namespace MainWidget
 			else if (s->getSetType() == MeshData::Family)
 				icon = "://QUI/icon/family.png";
 			item->setIcon(0, QIcon(icon));
+
+			Qt::CheckState state = Qt::Checked;
+			if (!visible) state = Qt::Unchecked;
+			item->setCheckState(0, state);
 		}
+		blockSignals(false);
 	}
 
 	void MeshWidget::singleClicked(QTreeWidgetItem* item, int i)
@@ -159,18 +176,20 @@ namespace MainWidget
 		if ((_currentItem->type() == MeshChild) || (_currentItem->type() == MeshSetChild))
 		{
 //			action = pop_menu.addAction(QIcon(), tr("Delete"));
+			QAction* edit = pop_menu.addAction(QIcon(), tr("Edit"));
+			connect(edit, SIGNAL(triggered()), this, SLOT(editMeshData()));
+			edit->setVisible(isMeshEditable());
 			action = pop_menu.addAction(QIcon(), tr("Rename"));
 			connect(action, SIGNAL(triggered()), this, SLOT(rename()));
 			if (_currentItem->type() == MeshChild)
 			{
 				action = pop_menu.addAction(QIcon(), tr("Remove"));
 				connect(action, SIGNAL(triggered()), this, SLOT(removeMeshData()));
-				
 			}
 			else if (_currentItem->type() == MeshSetChild)
 			{
 				action = pop_menu.addAction(QIcon(), tr("Remove"));
-				connect(action, SIGNAL(triggered()), this, SLOT(removeSetData()));
+				connect(action, SIGNAL(triggered()), this, SLOT(removeCurrSetData()));
 			}
 
 				
@@ -197,6 +216,21 @@ namespace MainWidget
 		pop_menu.exec(QCursor::pos());
 		
 	}
+
+	bool MeshWidget::isMeshEditable()
+	{
+		const int index = _meshRoot->indexOfChild(_currentItem);
+		if (index < 0) return false;
+
+		MeshData::MeshKernal* k = _data->getKernalAt(index);
+		if (k == nullptr)return false;
+
+		DataProperty::DataBase* data = k->getGmshSetting();
+		if (data == nullptr) return false;
+
+		return true;
+	}
+
 	void MeshWidget::removeMeshData()
 	{
 		///<MG temp 
@@ -212,14 +246,38 @@ namespace MainWidget
 		emit updateActionStates();
 		emit clearHighLight();
 	}
-	void MeshWidget::removeSetData()
+	void MeshWidget::removeCurrSetData()
 	{
 		const int index = _setRoot->indexOfChild(_currentItem);
 		if (index < 0) return;
+		int msID = _currentItem->data(0, Qt::UserRole).toInt();
+		emit removeSetData(index);
 		_data->removeMeshSetAt(index);
 		updateMeshSetTree();
 		emit disPlayProp(nullptr);
 		emit clearHighLight();
+		emit removeCaseComponentSig(msID);
+	}
+
+	void MeshWidget::editMeshData()
+	{
+		const int index = _meshRoot->indexOfChild(_currentItem);
+		if (index < 0) return;
+
+		MeshData::MeshKernal* k = _data->getKernalAt(index);
+		if (k == nullptr)return;
+
+		DataProperty::DataBase* data = k->getGmshSetting();
+		if (data == nullptr) return;
+
+		int d = data->getID();
+		emit editMesh(d, index);	
+		
+	}
+
+	void MeshWidget::preWindowOpened(MainWidget::PreWindow* p)
+	{
+		_preWindow = p;
 	}
 
 	void MeshWidget::startMesher(QString mesher)
@@ -294,8 +352,15 @@ namespace MainWidget
 
 	void MeshWidget::rename()
 	{
+		DataProperty::DataBase* data = nullptr;
+		if (_currentItem->type() == MeshSetChild)
+		{
+			int index = _setRoot->indexOfChild(_currentItem);
+			data = _data->getMeshSetAt(index);
+		}
 		MeshRenameDialog dlg(_mainWindow, _currentItem);
-		dlg.exec();
+		if (dlg.exec() == QDialog::Accepted && _currentItem->type() == MeshSetChild && data)
+			emit renameCaseComponentSig(data->getID());
 	}
 
 	void MeshWidget::itemStatesChanged(QTreeWidgetItem* item, int)
@@ -306,24 +371,32 @@ namespace MainWidget
 			emit higtLightSet(nullptr);
 			return;
 		}
-
-		if (_currentItem->type() != TreeItemType::MeshChild) return;
+		disPlayProp(nullptr);
+//		if (_currentItem->type() != TreeItemType::MeshChild) return;
 		
-		const int index = _meshRoot->indexOfChild(item);
-		if (index < 0)
+		int index = _meshRoot->indexOfChild(item);
+		if (index >= 0)
 		{
-			emit disPlayProp(nullptr);
+			MeshData::MeshKernal* k = _data->getKernalAt(index);
+			if (k == nullptr) return;
+			bool visable = true;
+			Qt::CheckState state = item->checkState(0);
+			if (state != Qt::Checked) visable = false;
+			k->setVisible(visable);
+			emit updateDisplay(index, visable);
 			return;
 		}
-
-		MeshData::MeshKernal* k = _data->getKernalAt(index);
-		if (k == nullptr) return;
-		bool visable = true;
-		Qt::CheckState state = item->checkState(0);
-		if (state != Qt::Checked) visable = false;
-		k->setVisible(visable);
-		emit updateDisplay(index, visable);
-
+		index = _setRoot->indexOfChild(item);
+		if (index >=  0)
+		{
+			MeshData::MeshSet* s = _data->getMeshSetAt(index);
+			if (s == nullptr) return;
+			bool visable = true;
+			Qt::CheckState state = item->checkState(0);
+			if (state != Qt::Checked) visable = false;
+			s->isVisible(visable);
+			emit updateMeshSetVisible(s);
+		}
 		
 	}
 

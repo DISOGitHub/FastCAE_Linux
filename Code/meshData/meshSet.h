@@ -2,7 +2,7 @@
 #define MESHSET_H_
 
 #include "meshDataAPI.h"
-#include "DataProperty/DataBase.h"
+#include "DataProperty/ComponentBase.h"
 #include <QString>
 #include <QMultiHash>
 
@@ -19,11 +19,13 @@ namespace MeshData
 		Element,
 		Family,
 		BCZone,
+		UserDef = 101,
+		EndType = 100000,
 	};
 	
 	class SetMember;
 
-	class MESHDATAAPI MeshSet : public DataProperty::DataBase
+	class MESHDATAAPI MeshSet : public DataProperty::ComponentBase
 	{
 	public :
 		//构造函数
@@ -31,11 +33,11 @@ namespace MeshData
 		MeshSet();
 		~MeshSet();
 		//获取最大ID
-		int static getMaxID();
+		//int static getMaxID();
 		//重置最大ID
-		void static resetMaxID();
+		//void static resetMaxID();
 		///设置ID，谨慎调用
-		void setID(int id) override;
+		//void setID(int id) override;
 		///设置类型 
 		void setType(SetType t);
 		///获取类型
@@ -54,6 +56,10 @@ namespace MeshData
 		void setKeneralID(int id);
 		//是否包含kernal
 		bool isContainsKernal(int id);
+		//设置可见性
+		void  isVisible(bool v);
+		//获取可见性
+		bool isVisible();
 		//合并组件
 		void merge(MeshSet* set);
 		//减去组件
@@ -71,15 +77,18 @@ namespace MeshData
 		//生成可以显示的模型, 每个实例只能调用一次
 		virtual void generateDisplayDataSet();
 		//获取显示模型
-		vtkDataSet* getDisplayDataSet();
+		virtual vtkDataSet* getDisplayDataSet();
 		//字符串转化为枚举
 		static SetType stringToSettype(QString s);
+		//枚举转字符串
+		static	QString setTypeToString(SetType);
 
 
 
 	protected:
 		SetType _type{ None };
-		SetMember* _member{};
+		bool _visible{ true };
+
 		QMultiHash<int, int> _members{};  //keneralID - node/elementID
 
 		QList<int> _tempMemberID{};
@@ -87,7 +96,7 @@ namespace MeshData
 		vtkDataSet* _displayDataSet{};
 
 	private:
-		static int maxID;
+	//	static int maxID;
 	};
 
 

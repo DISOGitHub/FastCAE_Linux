@@ -10,11 +10,19 @@
 #include <BRepClass_FaceClassifier.hxx>
 #include <TopExp.hxx>
 #include <TopoDS.hxx>
+#include <Bnd_Box.hxx>
+#include <BRepBndLib.hxx>
 #include <QDebug>
 
 QList<int> GeoCommon::getD2ElementsInShape(vtkDataSet* d, TopoDS_Shape* sh)
 {
 	QList<int> ids;
+
+	Bnd_Box box;
+	BRepBndLib::Add(*sh, box);
+	gp_Pnt max = box.CornerMax();
+	gp_Pnt min = box.CornerMin();
+	const double tol = max.Distance(min) / 10000.0;
 
 	vtkCell *cell = nullptr;
 	const int nc = d->GetNumberOfCells();
@@ -32,7 +40,7 @@ QList<int> GeoCommon::getD2ElementsInShape(vtkDataSet* d, TopoDS_Shape* sh)
 			int pointid = points->GetId(pi);
 			double* c = d->GetPoint(pointid);
 			gp_Pnt pt(c[0], c[1], c[2]);
-			if (!IsPointOnFace(sh, &pt, 1e-5))
+			if (!IsPointOnFace(sh, &pt, tol))
 			{
 				inface = false;
 				break;
@@ -53,18 +61,58 @@ QList<int> GeoCommon::getNodesInShape(vtkDataSet* d, TopoDS_Shape* sh)
 {
 	QList<int> ids;
 
-//	vtkCell *cell = nullptr;
+	Bnd_Box box;
+	BRepBndLib::Add(*sh, box);
+	gp_Pnt max = box.CornerMax();
+	gp_Pnt min = box.CornerMin();
+	const double tol = max.Distance(min) / 10000.0;
+
+
 	const int nc = d->GetNumberOfPoints();
 	for (int i = 0; i < nc; i++)
 	{
 		double *coor = d->GetPoint(i);
 	
 		gp_Pnt pt(coor[0], coor[1], coor[2]);
-		if (IsPointOnFace(sh, &pt, 1e-5))
+		if (IsPointOnFace(sh, &pt, tol))
 			ids.append(i);
 
 	}
+	
+	return ids;
+}
 
+QList<int> GeoCommon::getBodyElementsInShape(vtkDataSet* d, TopoDS_Shape* sh)
+{
+	TopAbs_ShapeEnum type = sh->ShapeType();
+	QList<int> ids;
+	vtkCell *cell = nullptr;
+	const int nc = d->GetNumberOfCells();
+	for (int i = 0; i < nc; i++)
+	{
+		cell = d->GetCell(i);
+		int type = cell->GetCellType();
+		int dim = VTKCellTypeToDim(type);
+		if (dim != 3) continue;
+
+		bool inbody = true;
+		double center[3]{};
+		int a = cell->GetParametricCenter(center); 
+		double x[3]{};
+		double weight{};
+		cell->EvaluateLocation(a, center, x, &weight); 
+		gp_Pnt pt(x[0], x[1], x[2]);
+		if (!isPointInBody(sh, &pt))
+		{
+			inbody = false;
+			continue;
+		}
+		if (inbody)
+		{
+			ids.append(i);
+		}
+	}
+		
 	return ids;
 }
 
@@ -154,4 +202,18 @@ bool GeoCommon::IsPointOnFace(TopoDS_Shape *s, gp_Pnt *aPoint, double aTolerance
 	return false;
 };
 
+bool GeoCommon::isPointInBody(TopoDS_Shape *s, gp_Pnt *aPoint)
+{
+	TopoDS_Vertex aVertex = BRepBuilderAPI_MakeVertex(*aPoint);
+	TopExp_Explorer solidexp(*s, TopAbs_SOLID);
+	for (; solidexp.More();solidexp.Next())
+	{
+		TopoDS_Shape solid = solidexp.Current();
+		BRepExtrema_DistShapeShape anExtrema(solid, aVertex);
+		bool insec = anExtrema.InnerSolution();
+		if (insec) return true;
+	}
+	
+	return false;
+}
 

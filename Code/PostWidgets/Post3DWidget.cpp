@@ -250,13 +250,13 @@ namespace Post
 		delete oritit;
 		emit createPickCurveWidgetSig(w);
 	}
-	void Post3DWindow::saveImage(QString filename, int width, int heigh, bool showDlg)
+	void Post3DWindow::saveImage(QString fileName, int width, int heigh, bool showDlg)
 	{
-		_graphWindow->script_saveImage(showDlg, width, heigh, filename);
+		_graphWindow->script_saveImage(showDlg, width, heigh, fileName);
 	}
-	void Post3DWindow::updatePipelineObjeDataSet(PipelineObject* obj, QString filename)
+	void Post3DWindow::updatePipelineObjeDataSet(PipelineObject* obj, QString fileName)
 	{
-		_graphWindow->script_updatePipelineObjeDataSet(obj, filename);
+		_graphWindow->script_updatePipelineObjeDataSet(obj, fileName);
 	}
 	PipelineObject* Post3DWindow::getCurrentPipelineObj()
 	{
@@ -284,8 +284,7 @@ namespace Post
 		else
 		{
 			QString idaddtype = QString("(%1,\"%2\",").arg(caseid).arg(wintype);
-			newcode = code.replace(QRegExp("\\("), idaddtype);
-		
+			newcode = code.replace(QRegExp("\\("), idaddtype);	
 		}
 		qDebug() << newcode;
 		Py::PythonAagent::getInstance()->appCodeList(newcode);

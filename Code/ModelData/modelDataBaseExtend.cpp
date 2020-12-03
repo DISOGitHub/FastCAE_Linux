@@ -60,20 +60,24 @@ namespace ModelData
 	{
 		_reportList.append(report);
 	}
+
 	int ModelDataBaseExtend::getReportCount()
 	{
 		return _reportList.size();
 	}
+
 	void ModelDataBaseExtend::removeReportAt(int index)
 	{
 		assert(index >= 0 && index < _reportList.size());
 		_reportList.removeAt(index);
 	}
+
 	QString ModelDataBaseExtend::getReportAt(int index)
 	{
 		assert(index >= 0 && index < _reportList.size());
 		return _reportList.at(index);
 	}
+
 	QDomElement& ModelDataBaseExtend::writeToProjectFile(QDomDocument* doc, QDomElement* e)
 	{
 		QDomElement element = ModelDataBase::writeToProjectFile(doc, e);
@@ -84,7 +88,7 @@ namespace ModelData
 			int setid = setidlist.at(i);
 			int materialid = _setMaterial.value(setid);
 			QDomElement mc = doc->createElement("MaterialInfo");
-			QDomAttr setattr = doc->createAttribute("SetID");
+			QDomAttr setattr = doc->createAttribute("ComponentID");
 			QDomAttr materialattr = doc->createAttribute("MaterialID");
 			setattr.setValue(QString::number(setid));
 			materialattr.setValue(QString::number(materialid));
@@ -122,6 +126,7 @@ namespace ModelData
 
 		return element;
 	}
+
 	void ModelDataBaseExtend::writeToProjectFile1(QDomDocument* doc, QDomElement* e)
 	{
 		ModelDataBase::writeToProjectFile1(doc, e);
@@ -133,7 +138,7 @@ namespace ModelData
 			int setid = setidlist.at(i);
 			int materialid = _setMaterial.value(setid);
 			QDomElement mc = doc->createElement("MaterialInfo");
-			QDomAttr setattr = doc->createAttribute("SetID");
+			QDomAttr setattr = doc->createAttribute("ComponentID");
 			QDomAttr materialattr = doc->createAttribute("MaterialID");
 			setattr.setValue(QString::number(setid));
 			materialattr.setValue(QString::number(materialid));
@@ -167,6 +172,7 @@ namespace ModelData
 		}
 		e->appendChild(ele);
 	}
+
 	void ModelDataBaseExtend::readDataFromProjectFile(QDomElement* e)
 	{
 		ModelDataBase::readDataFromProjectFile(e);
@@ -174,7 +180,7 @@ namespace ModelData
 		for (int i = 0; i < materialList.size(); ++i)
 		{
 			QDomElement ele = materialList.at(i).toElement();
-			QString ssetid = ele.attribute("SetID");
+			QString ssetid = ele.attribute("ComponentID");
 			QString smaterialID = ele.attribute("MaterialID");
 			int setid = ssetid.toInt();
 			int maid = smaterialID.toInt();
@@ -221,15 +227,18 @@ namespace ModelData
 		}
 		this->registerObserver();
 	}
+
 	void ModelDataBaseExtend::writeToSolverXML(QDomDocument* doc, QDomElement* e)
 	{
 		this->writeToProjectFile(doc, e);
 	}
-	void ModelDataBaseExtend::setMaterial(int setID, int materialID)
+
+	void ModelDataBaseExtend::setMaterial(int setID, int materialID)	
 	{
-		if ((!_componentIDList.contains(setID)) || materialID <= 0) return;
+		if (!_ComponentIDList.contains(setID) || materialID <= 0) return;
 		_setMaterial[setID] = materialID;
 	}
+
 	int ModelDataBaseExtend::getMaterialID(int setid)
 	{
 		int m = -1;
@@ -239,6 +248,7 @@ namespace ModelData
 		}
 		return m;
 	}
+
 	bool ModelDataBaseExtend::isMaterialSetted(int setid)
 	{
 		bool s = false;
@@ -249,6 +259,7 @@ namespace ModelData
 		}
 		return s;
 	}
+
 	void ModelDataBaseExtend::removeMaterial(int setid)
 	{
 		if (_setMaterial.contains(setid))
@@ -257,9 +268,9 @@ namespace ModelData
 		}
 	}
 
-	void ModelDataBaseExtend::setMeshSetList(QList<int> ids)
+	void ModelDataBaseExtend::setComponentIDList(QList<int> ids)
 	{
-		QList<int> old = _componentIDList;
+		QList<int> old = _ComponentIDList;
 		QList<int> removeid;
 		for (auto id : old)
 			if (!ids.contains(id)) removeid.append(id);
@@ -270,7 +281,7 @@ namespace ModelData
 				_setMaterial.remove(id);
 			for (auto bc : _bcList)
 			{
-				if (bc->getMeshSetID() == id)
+				if (bc->getComponentID() == id)
 				{
 					_bcList.removeOne(bc);
 					delete bc;
@@ -278,20 +289,20 @@ namespace ModelData
 				}
 			}
 		}
-
-		ModelDataBase::setMeshSetList(ids);
+		ModelDataBase::setComponentIDList(ids);
 	}
 
-	void ModelDataBaseExtend::removeMeshSetAt(int index)
+	void ModelDataBaseExtend::removeComponentAt(int index)
 	{
-		assert(index >= 0 && index < _componentIDList.size());
-		int id = _componentIDList.at(index);
+		assert(index >= 0 && index < _ComponentIDList.size());
+		int id = _ComponentIDList.at(index);
 		if (isMaterialSetted(id))
 		{
 			removeMaterial(id);
 		}
-		ModelDataBase::removeMeshSetAt(index);
+		ModelDataBase::removeComponentAt(index);
 	}
+
 	void ModelDataBaseExtend::copyFormConfig()
 	{
 		ConfigOption::DataConfig* dataconfig = ConfigOption::ConfigOption::getInstance()->getDataConfig();
@@ -313,10 +324,12 @@ namespace ModelData
 		this->registerObserver();
 		
 	}
+
 	QList<ConfigOption::PostCurve*> ModelDataBaseExtend::getMonitorCurves()
 	{
 		return _monitorCurves;
 	}
+
 	ConfigOption::PostCurve* ModelDataBaseExtend::getMonitorCurveAt(const int index)
 	{
 		assert(index >= 0 && index < _monitorCurves.size());
@@ -334,13 +347,17 @@ namespace ModelData
 		}
 		_configData[dataID] = data;
 	}
+
 	DataProperty::DataBase* ModelDataBaseExtend::getConfigData(int dataID)
 	{
 		return _configData.value(dataID);
 	}
-	int ModelDataBaseExtend::getConfigDataCount(){
+
+	int ModelDataBaseExtend::getConfigDataCount()
+	{
 		return _configData.count();
 	}
+
 // 	QString ModelDataBaseExtend::getMonitorList()
 // 	{
 // 		return _monitor;
@@ -349,6 +366,7 @@ namespace ModelData
 	{
 		return _monitorFiles;
 	}
+
 	QStringList ModelDataBaseExtend::getAbsoluteMonitorFile()
 	{
 		QStringList s;
@@ -360,6 +378,7 @@ namespace ModelData
 		}
 		return s;
 	}
+
 	QStringList ModelDataBaseExtend::getMonitorVariables(QString f)
 	{
 		QStringList v;
@@ -375,6 +394,7 @@ namespace ModelData
 		}
 		return v;
 	}
+
 	QStringList ModelDataBaseExtend::getPost2DFiles()
 	{
 		ConfigOption::PostConfigInfo* info = ConfigOption::ConfigOption::getInstance()->getPostConfig()->getPostConfigInfo(_treeType);
@@ -383,6 +403,7 @@ namespace ModelData
 			s = info->getPost2DFile();
 		return s;
 	}
+
 	QStringList ModelDataBaseExtend::getAbsolutePost2DFiles()
 	{
 		QStringList s = this->getPost2DFiles();
@@ -394,6 +415,7 @@ namespace ModelData
 		}
 		return f;
 	}
+
 	QStringList ModelDataBaseExtend::getPost2DVariables(QString f)
 	{
 		ConfigOption::PostConfigInfo* info = ConfigOption::ConfigOption::getInstance()->getPostConfig()->getPostConfigInfo(_treeType);
@@ -402,6 +424,7 @@ namespace ModelData
 			s = info->get2DVariables(f);
 		return s;
 	}
+
 	QString ModelDataBaseExtend::getPost3DFile()
 	{
 		ConfigOption::PostConfigInfo* info = ConfigOption::ConfigOption::getInstance()->getPostConfig()->getPostConfigInfo(_treeType);
@@ -409,6 +432,7 @@ namespace ModelData
 			return info->getPost3DFile();
 		return "";
 	}
+
 	void ModelDataBaseExtend::get3DScalars(QStringList &node, QStringList &ele)
 	{
 		ConfigOption::PostConfigInfo* info = ConfigOption::ConfigOption::getInstance()->getPostConfig()->getPostConfigInfo(_treeType);
@@ -418,6 +442,7 @@ namespace ModelData
 			ele = info->getCellScalarVariable();
 		}
 	}
+
 	void ModelDataBaseExtend::get3DVector(QStringList &node, QStringList &ele)
 	{
 		ConfigOption::PostConfigInfo* info = ConfigOption::ConfigOption::getInstance()->getPostConfig()->getPostConfigInfo(_treeType);
@@ -432,40 +457,49 @@ namespace ModelData
 	{
 		_scalarVariable.append(v);
 	}
+
 	void ModelDataBaseExtend::removeScalarVariable(int index)
 	{
 		if (index < 0 || index >= _scalarVariable.size()) return;
 		_scalarVariable.removeAt(index);
 	}
+
 	QStringList ModelDataBaseExtend::getScalarVariable()
 	{
 		return _scalarVariable;
 	}
+
 	void ModelDataBaseExtend::appendVectorVariable(QString v)
 	{
 		_vectorVariable.append(v);
 	}
+
 	void ModelDataBaseExtend::removeVectorVariable(int index)
 	{
 		if (index < 0 || index >= _vectorVariable.size()) return;
 		_vectorVariable.removeAt(index);
 	}
+
 	QStringList ModelDataBaseExtend::getVectorVariable()
 	{
 		return _vectorVariable;
 	}
+
 	void ModelDataBaseExtend::apppendPlotCurve(ConfigOption::PostCurve* c)
 	{
 		_postCurves.append(c);
 	}
+
 	QList<ConfigOption::PostCurve*> ModelDataBaseExtend::getPlotCurves()
 	{
 		return _postCurves;
 	}
+
 	void ModelDataBaseExtend::removePlotCurve(int index)
 	{
 		_postCurves.removeAt(index);
 	}
+
 	bool ModelDataBaseExtend::isPostCurveExist(QString name)
 	{
 		for (int i = 0; i < _postCurves.size(); ++i)
@@ -476,6 +510,7 @@ namespace ModelData
 		}
 		return false;
 	}
+
 	void ModelDataBaseExtend::clearPlotCurve()
 	{
 		for (int i = 0; i < _postCurves.size(); ++i)
@@ -485,6 +520,7 @@ namespace ModelData
 		}
 		_postCurves.clear();
 	}
+
 	void ModelDataBaseExtend::clear3DVariable()
 	{
 		_scalarVariable.clear();
@@ -507,7 +543,6 @@ namespace ModelData
 		return P;
 	}
 
-
 	void ModelDataBaseExtend::removeParameter(DataProperty::ParameterBase* p)
 	{
 		QList<DataProperty::DataBase*> dataList = _configData.values();
@@ -518,7 +553,6 @@ namespace ModelData
 		}
 		ModelDataBase::removeParameter(p);
 	}
-
 
 	void ModelDataBaseExtend::removeParameterGroup(DataProperty::ParameterGroup* g)
 	{
@@ -561,7 +595,7 @@ namespace ModelData
 			for (int i = 0; i < activePara.size(); ++i)
 			{
 				QString name = activePara.at(i);
-				qDebug() << name;
+//				qDebug() << name;
 				auto para = this->getParameterByName(name);
 				if (para == nullptr)
 				{
@@ -645,6 +679,13 @@ namespace ModelData
 		return _post3DWindow;
 	}
 
+	void ModelDataBaseExtend::bindInpMaterialIds(const QList<int>& inpMaterIds)
+	{
+		_inpMaterIds = inpMaterIds;
+	}
 
-
+	const QList<int>& ModelDataBaseExtend::getInpMaterialIds()
+	{
+		return _inpMaterIds;
+	}
 }

@@ -13,9 +13,9 @@
 VTK_MODULE_INIT(vtkRenderingOpenGL2);
 VTK_MODULE_INIT(vtkInteractionStyle);
 VTK_MODULE_INIT(vtkRenderingFreeType);
-VTK_MODULE_INIT(vtkRenderingContextOpenGL2);
+//VTK_MODULE_INIT(vtkRenderingContextOpenGL2);
 VTK_MODULE_INIT(vtkRenderingVolumeOpenGL2);
-VTK_MODULE_INIT(vtkRenderingGL2PSOpenGL2);
+//VTK_MODULE_INIT(vtkRenderingGL2PSOpenGL2);
 //VTK_MODULE_INIT(vtkIOExportOpenGL2);
 
 class vtkActor;
@@ -72,7 +72,7 @@ namespace ModuleBase
 		void RemoveActor(vtkProp* actor);
 		//启用/禁用渲染读一下
 		void enableActor(vtkActor* actor, bool show = true);
-		void saveImage(QString filename, int w, int h, bool showdlg) override;
+		void saveImage(QString fileName, int w, int h, bool showdlg) override;
 		void setViewValue(int x1, int x2, int x3, int y1, int y2, int y3, int z1, int z2, int z3) override;
 		void updateScalarBar(vtkLookupTable* lookuptable, QString title = QString(""));
 		void updateScalarBarLecel(const int n);
@@ -87,8 +87,6 @@ namespace ModuleBase
 		PropPickerInteractionStyle* getInteractionStyle();
 		//获取渲染器
 		vtkRenderer* getRenderer();
-// 		vtkDataSet* getHighLightDataSet();
-// 		vtkIdTypeArray* getHighLightIDArray();
 		//获取选择模式
 		SelectModel getSelectModel();
 		//获取窗体世界坐标系下高度
@@ -96,22 +94,15 @@ namespace ModuleBase
 		//获取窗体世界坐标系下宽度
 		double getWorldWidth();
 
-		QMultiHash<vtkDataSet*, int>* getSelectItems();
-
 	public slots:
 	     //重绘
 		void reRender();
 
 	protected slots :
-		void setSelectType(int model);
-		void highLighSet(QMultiHash<vtkDataSet*, int>* items);
-		void highLighSet(MeshData::MeshSet* set);
-		void highLighDataSet(vtkDataSet* dataset);
-		void highLighKernel(MeshData::MeshKernal* k);
-		void enableKeyBoard(bool on);
-		void highLightActorDispalyPoint(bool on);
-		void clearHighLight();
+		 void setSelectType(int model);
+	    void enableKeyBoard(bool on);
 		void mouseWheelMove();
+	
 
 	private:
 		void init();
@@ -131,17 +122,22 @@ namespace ModuleBase
 
 		void keyPressEvent(QKeyEvent *e) override;
 		void keyReleaseEvent(QKeyEvent *e) override;
-		void resizeEvent(QResizeEvent * e);
-		
+		void resizeEvent(QResizeEvent * e) override;
+		void leaveEvent(QEvent *event) override;
+		void enterEvent(QEvent *event) override;
 // 
 	signals:
 		//type  0-press  1-release
 		void keyEvent(int type, QKeyEvent* e);
-		void selectGeometry(vtkActor* actor,bool);
+		void selectGeometry(vtkActor* actor, bool ctrlpress);
+		void preSelectGeometry(vtkActor* actor, QVector<double*> points);
 		void reRenderSig();
+		void clearAllHighLight();
 		//还原几何颜色
-		void RestoreGeoColorSig();
-		
+		void rightDownMenuSig();
+		//网格
+		void highLighSet(QMultiHash<vtkDataSet*, int>* items);
+		void highLightActorDispalyPoint(bool on);
 
 	protected:
 		Ui::Graph3DWindow* _ui{};
@@ -160,12 +156,6 @@ namespace ModuleBase
 		//拾取相关
 		PropPickerInteractionStyle* _interactionStyle{};
 		SelectModel _selectModel{ None };
-		vtkSmartPointer<vtkActor> _highLightActor{};
-		vtkSmartPointer<vtkDataSetMapper> _highLightMapper{};
-		vtkSmartPointer<vtkPolyData> _emptyDataset{};
-// 		vtkDataSet* _highLightDataSet{};
-// 		vtkIdTypeArray* _highLightIDArray{};
-		QMultiHash<vtkDataSet*, int>* _selectItems{};
  
 	};
 }

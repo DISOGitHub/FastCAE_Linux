@@ -24,7 +24,7 @@ namespace Command
 		void redo() override;
 		void releaseResult() override;
 
-		void setBodys(QList<Geometry::GeometrySet*> b);
+		void setBodys(QMultiHash<Geometry::GeometrySet*, int>  b);
 		void setPlane(double* loc, double* dir);
 		void setSaveOrigin(bool on);
 
@@ -35,22 +35,22 @@ namespace Command
 		void setreverse(bool reverse);
 		void setRandomDir(double* randomdir);
 		void setBasePt(double* basepoint);
-	
-
-	protected:
+	private:
+		void getDirection();
 
 	private:
+		//´ýÉ¾
 		QList<Geometry::GeometrySet*> _bodys{};
+		//ÐÂ¼Ó
+		QMultiHash<Geometry::GeometrySet*, int> _solidhash{};
+
 		double _planeLocation[3]{};
 		double _planeDirection[3]{};
 		bool _saveOrigin{ false };
-		void getDirection();
+	
 
 		QHash<Geometry::GeometrySet*, Geometry::GeometrySet*> _resultOriginHash{};
-
-
 		int _planeindex;
-
 		Geometry::GeometrySet* _faceBody{};
 		int _typeindex{ 0 };
 		int _faceIndex{ 0 };

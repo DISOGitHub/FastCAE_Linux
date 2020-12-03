@@ -8,6 +8,7 @@
 #include "GmshThread.h"
 #include "moduleBase/processBar.h"
 #include "GmshThreadManager.h"
+#include "DialogFluidMesh.h"
 
 namespace Gmsh
 {
@@ -23,10 +24,12 @@ namespace Gmsh
 
 		connect(this, SIGNAL(showDialog(QDialog*)), m, SIGNAL(showDialogSig(QDialog*)));
 		connect(this, SIGNAL(updateMeshTree()), m, SIGNAL(updateMeshTreeSig()));
+		connect(this, SIGNAL(updateSetTree()), m, SIGNAL(updateSetTreeSig()));
 		connect(this, SIGNAL(updateActions()), m, SIGNAL(updateActionsStatesSig()));
 
 		connect(m, SIGNAL(preWindowOpenedSig(MainWidget::PreWindow*)), this, SLOT(preWindowOpened(MainWidget::PreWindow*)));
 		connect(m, SIGNAL(closePreWindowSig()), this, SLOT(preWindowClosed()));
+		connect(m, SIGNAL(editMeshSig(int, int)), this, SLOT(editMesh(int, int)));
 
 		connect(this, SIGNAL(generateSig(GMshPara*)), this, SLOT(generateSlot(GMshPara*)));
 
@@ -46,8 +49,14 @@ namespace Gmsh
 		{
 			dlg = new SolidMeshDialog(_mainwindow, pre);
 		}
+		else if (commandType == 0)
+		{
+			dlg = new DialogFluidMesh(_mainwindow, pre);
+		}
 		if (dlg != nullptr)
 			emit showDialog(dlg);
+		
+			
 	}
 
 	GmshModule* GmshModule::getInstance(GUI::MainWindow* m)
@@ -77,7 +86,13 @@ namespace Gmsh
 
 	void GmshModule::generateSlot(GMshPara* para)
 	{
-		
+		GmshThread* thread = iniGmshThread(para);
+		auto processBar = new ModuleBase::ProcessBar(_mainwindow, tr("Gmsh Working..."));
+		_threadManager->insertThread(processBar, thread);
+	}
+
+	GmshThread* GmshModule::iniGmshThread(GMshPara* para)
+	{
 		if (_threadManager->isRuning())
 		{
 			delete para;
@@ -86,16 +101,30 @@ namespace Gmsh
 		}
 
 
-		auto processBar = new ModuleBase::ProcessBar(_mainwindow, tr("Gmsh Working..."));
-//		processBar->buttonVisible(false);
 		GmshThread* thread = new GmshThread(_mainwindow, _preWindow, this, para->_dim);
 		thread->setPara(para);
 		delete para;
-		_threadManager->insertThread(processBar, thread);
+		return thread;
+	}
 
+	GmshThreadManager* GmshModule::getGmshThreadManager()
+	{
+		return _threadManager;
 	}
 
 
-
+	void GmshModule::editMesh(int dim, int index)
+	{
+		if (dim == 3)
+		{
+			Gmsh::SolidMeshDialog* solid = new Gmsh::SolidMeshDialog(_mainwindow, _preWindow, index);
+			emit showDialog(solid);
+		}
+		else if (dim == 2)
+		{
+			Gmsh::SurfaceMeshDialog* surface = new Gmsh::SurfaceMeshDialog(_mainwindow, _preWindow, index);
+			emit showDialog(surface);
+		}
+	}
 
 }

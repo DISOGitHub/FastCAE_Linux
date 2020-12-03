@@ -9,7 +9,7 @@ enum ProjectTreeType
 	UnDefined = -1,
 	TreeType = 0,
 	PluginDefType = 100,
-	TreeTypeBoundary = 1000,
+	TreeTypeBoundary = 100000,
 };
 
 
@@ -20,6 +20,8 @@ enum TreeItemType
 	GeometryChild,
 	Datum,
 	DatumPlane,
+	GeoComponentRoot,
+	GeoComponentChild,
 	MeshRoot,
 	MeshChild,
 	MeshSetRoot,
@@ -34,8 +36,8 @@ enum TreeItemType
 	ProjectSimulationSettingGrandSon,
 	ProjectGeometry,
 	ProjectGeometryChild,
-	ProjectMesh,
-	ProjectMeshChild,
+	ProjectComponent,
+	ProjectComponentChild,
 	ProjectBoundaryCondation,
 	ProjectBoundaryCondationChild,
 	ProjectMonitor,
@@ -73,7 +75,7 @@ extern TreeItemType DATAPROPERTYAPI getTreeItemTypeByString(const QString& type)
 
 extern ProjectTreeType DATAPROPERTYAPI getTreeTypeByString(const QString& type);
 
-extern QString DATAPROPERTYAPI getTreeTypeToSring(ProjectTreeType ty);
+extern QString DATAPROPERTYAPI getTreeTypeToString(ProjectTreeType ty);
 
 
 #endif

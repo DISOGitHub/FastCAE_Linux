@@ -17,12 +17,12 @@ namespace IO{
 	}
 	QStringList ProjectTemplete::getTempletefromFile(){
 		QStringList rtn;
-		QString filename = QFileDialog::getOpenFileName(nullptr,
+		QString fileName = QFileDialog::getOpenFileName(nullptr,
 			QObject::tr("Open File"), "/home/templete.dat", QObject::tr("Configuration Files (*.dat *.txt)"));
-		if (filename.isEmpty()){
+		if (fileName.isEmpty()){
 			return rtn;
 		}
-		QFile file(filename);
+		QFile file(fileName);
 		if (!file.exists()){
 			return rtn;
 		}
@@ -63,7 +63,7 @@ namespace IO{
 			DataProperty::ParameterBase* dbID = mdSim->getParameterAt(i);
 			for (int j = 0; j < file_text.count(); j++){
 				QStringList para_temp = file_text.at(j).split(" ", QString::SkipEmptyParts);
-				qDebug() << para_temp;
+				//qDebug() << para_temp;
 				if (para_temp.count() != 3){
 					QMessageBox::warning(NULL, QObject::tr("Warning"), QObject::tr("The format of the file that you import is wrong!"));
 					return;

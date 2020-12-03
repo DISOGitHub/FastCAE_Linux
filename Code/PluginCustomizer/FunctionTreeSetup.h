@@ -72,9 +72,7 @@ namespace FastCAEDesigner
 // 		
 
 	private slots:
-		void OnProjectTreeRightClicked
-			
-			(const QPoint &point);
+		void OnProjectTreeRightClicked(const QPoint &point);
 		void OnInsertChild();
 		void OnHideThis();
 		void OnShowThis(int childindex);
@@ -86,7 +84,7 @@ namespace FastCAEDesigner
 		void OnInsertMaterialTree();
 		void OnDeleteAllMaterialItem();
 
-		void onShowParameterLinkage(QString name);
+		void onShowParameterLinkage(int type);
 
 	private:
 		void Init();
@@ -127,6 +125,9 @@ namespace FastCAEDesigner
 
 		//20200327
 		void SetParentModel(QTreeWidgetItem* item);
+
+		ModelBase* getSimulationSolverChildNameModel(QList<ModelBase*> modelList, QString name);
+		ModelBase* getChildModelFromName(ModelBase* model, QString name);
 
 	private:
 		Ui::FunctionTreeSetup *ui;

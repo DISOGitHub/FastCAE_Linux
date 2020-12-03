@@ -3,8 +3,7 @@
 #include "meshSet.h"
 #include "CgnsBCZone.h"
 #include "CgnsFamily.h"
-#include "vtkReader.h"
-#include "NeuReader.h"
+#include "MeshFactory.h"
 #include <assert.h>
 #include <QDataStream>
 #include <QCryptographicHash>
@@ -83,7 +82,16 @@ namespace MeshData
 		delete k;
 		_meshList.removeAt(index);
     }
-    void MeshData::clear()
+
+	void MeshData::removeKernalByID(const int id)
+	{
+		auto k = this->getKernalByID(id);
+		int index = _meshList.indexOf(k);
+		if (index < 0) return;
+		this->removeKernalAt(index);
+	}
+
+	void MeshData::clear()
     {
         int n = this->getKernalCount();
         for (int i = 0; i < n; ++i)
@@ -102,7 +110,7 @@ namespace MeshData
         _setList.clear();
 
 		MeshKernal::resetOffset();
-		MeshSet::resetMaxID();
+		DataProperty::ComponentBase::resetMaxID();
     }
     QString MeshData::getMD5()
     {
@@ -165,12 +173,12 @@ namespace MeshData
 // 			QString suffix = finfo.suffix().toLower();
 // 			if (suffix == "vtk" || suffix == "stl")
 // 			{
-// 				VTKReader reader(fpath);
+// 				VTKdataExchange reader(fpath);
 // 				if (!reader.read()) continue;
 // 			}
 // 			else if (suffix == "neu")
 // 			{
-// 				NeuReader reader(fpath);
+// 				NEUdataExchange reader(fpath);
 // 				if (!reader.read()) continue;
 // 			}
             MeshKernal* k = new MeshKernal;
@@ -280,7 +288,6 @@ namespace MeshData
 			MeshSet* s = this->getMeshSetAt(i);
 			s->generateDisplayDataSet();
 		}
-
 	}
 
 	void MeshData::writeBinaryFile(QDataStream* dataStream)
@@ -321,15 +328,15 @@ namespace MeshData
 		{
 			int type = 0;
 			*dataStream >> type;
-			MeshSet* s = nullptr;
-			switch (type)
-			{
-			case 1:
-			case 2: s = new MeshSet(QString(), SetType(type)); break;
-			case 3: s = new CgnsFamily; break;
-			case 4: s = new CgnsBCZone; break;
-			default:break;
-			}
+			MeshSet* s = MeshFactory::CreateMeshSet(type);
+// 			switch (type)
+// 			{
+// 			case 1:
+// 			case 2: s = new MeshSet(QString(), SetType(type)); break;
+// 			case 3: s = new CgnsFamily; break;
+// 			case 4: s = new CgnsBCZone; break;
+// 			default:break;
+// 			}
 			if (s == nullptr) continue;
 			_setList.append(s);
 			s->readBinaryFile(dataStream);

@@ -48,17 +48,13 @@ namespace FastCAEDesigner
 // 		else
 // 		{
 // 			ui->parameterLinkagePBtn->setVisible(false);
- 			QString caseName = getCaseName(_model);
+ 			_treeType = getCaseType(_model);
  			//qDebug() << caseName;
-			_parameterList = DataManager::getInstance()->getAllParameterList(caseName);
-			if (_parameterList.isEmpty())
- 				qDebug() << "list empty";
-			else
-				qDebug() << _parameterList.count();
-
+			_parameterList = DataManager::getInstance()->getAllParameterList(_treeType);
+			_parameterGroupList = DataManager::getInstance()->getAllParameterGroupList(_treeType);
 			ui->parameterLinkagePBtn->setVisible(false);
 // 		}
-
+			_currentType = model->GetType();
 		//resizeEvent(0);
 		Init();
 		//ui->groupBox->hide();
@@ -66,6 +62,13 @@ namespace FastCAEDesigner
 
 	EditorDescripttionSetup::~EditorDescripttionSetup()
 	{
+		//非边界数据更新
+		if (_currentType != TreeItemType::ProjectBoundaryCondationChild)
+		{
+			DataManager::getInstance()->setAllParameterListDict(_treeType, _parameterList);
+			DataManager::getInstance()->setAllParameterGroupListDict(_treeType, _parameterGroupList);
+		}
+		
 		delete ui;
 	}
 
@@ -449,8 +452,12 @@ namespace FastCAEDesigner
 		if (nullptr == model)
 			return;
 		
+		_parameterList.removeOne(model);
+
 		EditModel(model);
 		ui->tableWidget_PList->selectRow(rowNo);
+
+		_parameterList.append(model);
 	}
 
 	//参数列表 --删除参数--槽函数
@@ -468,6 +475,9 @@ namespace FastCAEDesigner
 		
 		if (QMessageBox::Yes == result)
 		{
+			_parameterList.removeOne(model);
+			removeNameFromList(model);
+
 			DeleteParameter(model);
 			FillParameterList();
 		}
@@ -505,7 +515,12 @@ namespace FastCAEDesigner
 			DataProperty::ParameterBase* item = paraList.at(i);
 			if (nullptr == item)
 				continue;
+
+			removeNameFromList(item);
+
 			dataBase->removeParameter(item);
+
+			_parameterList.removeOne(item);
 		}
 
 		FillParameterList();
@@ -593,8 +608,14 @@ namespace FastCAEDesigner
 		if (nullptr == dataBase)
 			return;
 
-		QList<QString> usedNameList = GetParameterGroupNameList();
+		QList<QString> usedNameList {};
+		if (_currentType == TreeItemType::ProjectBoundaryCondationChild)
+			usedNameList = GetParameterGroupNameList();
+		else
+			usedNameList = DataManager::getInstance()->getParaGroupNameList();
+
 		EditorNameValue dlg(this);
+		usedNameList.append("0");
 		dlg.SetUsedNameList(usedNameList);
 		int r = dlg.exec();
 
@@ -608,6 +629,9 @@ namespace FastCAEDesigner
 			ui->btnEdit_S_G->setEnabled(false);
 			ui->btnDel_S_G->setEnabled(false);
 			ui->btnClearAll_S_G->setEnabled(true);
+
+			_parameterGroupList.append(group);
+			DataManager::getInstance()->appendParaGroupNameList(group->getDescribe());
 		}
 	}
 
@@ -640,11 +664,19 @@ namespace FastCAEDesigner
 		if (nullptr == group)
 			return;
 
+		_parameterGroupList.removeOne(group);
+
 		int row = ui->tableWidget_GList->currentRow();
 
 		QString name = group->getDescribe();
-		QList<QString> usedNameList = GetParameterGroupNameList();
+		QList<QString> usedNameList{};
+		if (_currentType == TreeItemType::ProjectBoundaryCondationChild)
+			usedNameList = GetParameterGroupNameList();
+		else
+			usedNameList = DataManager::getInstance()->getParaGroupNameList();
+
 		usedNameList.removeOne(name);
+		usedNameList.append("0");
 
 		EditorNameValue dlg(this);
 		dlg.SetNameString(name);
@@ -653,10 +685,15 @@ namespace FastCAEDesigner
 
 		if (r == QDialog::Accepted)
 		{
+			DataManager::getInstance()->removeParaGroupName(name);
+			DataManager::getInstance()->appendParaGroupNameList(dlg.GetNameString());
+
 			group->setDescribe(dlg.GetNameString());
 			this->FillGroupList();
 			ui->tableWidget_GList->selectRow(row);
 		}
+
+		_parameterGroupList.append(group);
 	}
 
 	//删除参数组
@@ -678,8 +715,12 @@ namespace FastCAEDesigner
 		QString msg = tr("Deleted parameter group %1?").arg(group->getDescribe());
 		QMessageBox::StandardButton result = QMessageBox::warning(NULL, title, msg, QMessageBox::Yes | QMessageBox::No);
 
+		qDebug() << group->getParameterCount();
+
 		if (QMessageBox::Yes == result)
 		{
+			deleteGroupAndParameters(group);
+			
 			dataBase->removeParameterGroup(group);
 			FillGroupList();
 		}
@@ -720,7 +761,10 @@ namespace FastCAEDesigner
 
 		for (int i = 0; i < count; i++)
 		{
-			dataBase->removeParameterGroupAt(0);
+			DataProperty::ParameterGroup* group = dataBase->getParameterGroupAt(0);
+			deleteGroupAndParameters(group);
+
+			dataBase->removeParameterGroupAt(0);			
 		}
 
 		FillGroupList();
@@ -804,8 +848,12 @@ namespace FastCAEDesigner
 		if (nullptr == model)
 			return;
 
+		_parameterList.removeOne(model);
+
 		EditModel(model);
 		ui->tableWidget_GPList->selectRow(rowNo);
+
+		_parameterList.append(model);
 	}
 
 	//参数组--参数表单--删除一个数据
@@ -828,6 +876,9 @@ namespace FastCAEDesigner
 
 		if (QMessageBox::Yes == result)
 		{
+			_parameterList.removeOne(model);
+			removeNameFromList(model);
+
 			group->removeParameter(model);
 			FillParameterList(group, ui->tableWidget_GPList);
 		}
@@ -868,6 +919,10 @@ namespace FastCAEDesigner
 			DataProperty::ParameterBase* item = paraList.at(i);
 			if (nullptr == item)
 				continue;
+
+			_parameterList.removeOne(item);
+			removeNameFromList(item);
+
 			group->removeParameter(item);
 		}
 
@@ -996,8 +1051,11 @@ namespace FastCAEDesigner
 			return usedNameList;
 		
 		if (_currentOpObject == ParaList)//获取参数列表中的参数名称
-		{
-			usedNameList = GetParameterNameList(dataBase->getParaList());
+		{ 
+			if (_currentType == TreeItemType::ProjectBoundaryCondationChild)
+				usedNameList = GetParameterNameList(dataBase->getParaList());
+			else
+				usedNameList = DataManager::getInstance()->getParameterNameList();
 		}
 		else//获取参数组--参数列表中的参数名称
 		{
@@ -1062,6 +1120,9 @@ namespace FastCAEDesigner
 		if (r == QDialog::Accepted)
 		{
 			InsertModelInParameterList(modelBool);
+
+			_parameterList.append(modelBool);
+			DataManager::getInstance()->appendParameterNameList(modelBool->getDescribe());
 		}
 	}
 	
@@ -1078,6 +1139,10 @@ namespace FastCAEDesigner
 		if (r == QDialog::Accepted)
 		{
 			InsertModelInParameterList(modelInt);
+
+			DataManager::getInstance()->appendParameterNameList(modelInt->getDescribe());
+
+			_parameterList.append(modelInt);
 		}
 	}
 
@@ -1094,6 +1159,9 @@ namespace FastCAEDesigner
 		if (r == QDialog::Accepted)
 		{
 			InsertModelInParameterList(modelDouble);
+
+			_parameterList.append(modelDouble);
+			DataManager::getInstance()->appendParameterNameList(modelDouble->getDescribe());
 		}
 	}
 
@@ -1111,6 +1179,9 @@ namespace FastCAEDesigner
 		if (r == QDialog::Accepted)
 		{
 			InsertModelInParameterList(modelString);
+
+			_parameterList.append(modelString);
+			DataManager::getInstance()->appendParameterNameList(modelString->getDescribe());
 		}
 	}
 	
@@ -1126,6 +1197,9 @@ namespace FastCAEDesigner
 		if (r == QDialog::Accepted)
 		{
 			InsertModelInParameterList(modelEnum);
+
+			_parameterList.append(modelEnum);
+			DataManager::getInstance()->appendParameterNameList(modelEnum->getDescribe());
 		}
 
 	}
@@ -1143,6 +1217,9 @@ namespace FastCAEDesigner
 		if (r == QDialog::Accepted)
 		{
 			InsertModelInParameterList(modelTable);
+
+			_parameterList.append(modelTable);
+			DataManager::getInstance()->appendParameterNameList(modelTable->getDescribe());
 		}
 	}
 
@@ -1158,6 +1235,9 @@ namespace FastCAEDesigner
 		if (r == QDialog::Accepted)
 		{
 			InsertModelInParameterList(modelPath);
+
+			_parameterList.append(modelPath);
+			DataManager::getInstance()->appendParameterNameList(modelPath->getDescribe());
 		}
 	}
 
@@ -1171,6 +1251,7 @@ namespace FastCAEDesigner
 		QList<QString> usedNameList = GetParameterNameList();
 		QString modelName = model->getDescribe();
 		usedNameList.removeOne(modelName);
+		DataManager::getInstance()->removeParameterName(modelName);
 		int r = 0;
 
 		if (model->getParaType() == DataProperty::ParaType::Para_Int)
@@ -1224,9 +1305,13 @@ namespace FastCAEDesigner
 			r = dlg.exec();
 		}
 
-
 		if (r != QDialog::Accepted)
+		{
+			DataManager::getInstance()->appendParameterNameList(model->getDescribe());
 			return;
+		}
+			
+		DataManager::getInstance()->appendParameterNameList(model->getDescribe());
 
 		if (_currentOpObject == ParaList)
 		{
@@ -1365,21 +1450,51 @@ namespace FastCAEDesigner
 	}
 
 	//xuxinwei 20200326
-	QString EditorDescripttionSetup::getCaseName(ModelBase* model)
+	int EditorDescripttionSetup::getCaseType(ModelBase* model)
 	{
-		QString str{};
+		int type{-1};
 		if (model == nullptr)
-			return str;
-		QString caseName{};
-		if ((model->GetType() == TreeItemType::ProjectSimulationSettingChild) || (model->GetType() == TreeItemType::ProjectSolverChild))
+			return type;
+		//QString caseName{};
+		if ((model->GetType() == TreeItemType::ProjectSimulationSettingGrandSon) || (model->GetType() == TreeItemType::ProjectSolverGrandSon))
+
+		{
+			type = model->GetParentModelBase()->GetParentModelBase()->GetParentModelBase()->getTreeType();
+			qDebug() << type;
+		}
+		else if ((model->GetType() == TreeItemType::ProjectSimulationSettingChild) || (model->GetType() == TreeItemType::ProjectSolverChild))
 	
 		{
-			caseName = model->GetParentModelBase()->GetParentModelBase()->GetChnName();
-			qDebug() << caseName;
+			type = model->GetParentModelBase()->GetParentModelBase()->getTreeType();
+			qDebug() << type;
 		}
 		else
-			caseName = model->GetParentModelBase()->GetChnName();
+			type = model->GetParentModelBase()->getTreeType();
 
-		return caseName;
+		return type;
 	}
+
+	void EditorDescripttionSetup::deleteGroupAndParameters(DataProperty::ParameterGroup* group)
+	{
+		//QList<DataProperty::ParameterBase*> list = group->getParaList();
+		for (int i = 0; i < group->getParameterCount();i++)
+		{
+			if (group->getParameterAt(i) == nullptr)
+				continue;
+
+			if (_parameterList.contains(group->getParameterAt(i)))
+				_parameterList.removeOne(group->getParameterAt(i));
+
+			removeNameFromList(group->getParameterAt(i));
+		}
+
+		_parameterGroupList.removeOne(group);
+		DataManager::getInstance()->removeParaGroupName(group->getDescribe());
+	}
+
+	void EditorDescripttionSetup::removeNameFromList(DataProperty::ParameterBase* base)
+	{
+		DataManager::getInstance()->removeParameterName(base->getDescribe());
+	}
+
 }

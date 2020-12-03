@@ -222,6 +222,42 @@ namespace FastCAEDesigner
 		return bcModelList;
 	}
 	
+	void DataManager::appendParameterNameList(QString name)
+	{
+		if (_parameterNameList.contains(name))
+			return;
+
+		_parameterNameList.append(name);
+	}
+
+	QList<QString> DataManager::getParameterNameList()
+	{
+		return _parameterNameList;
+	}
+
+	void DataManager::removeParameterName(QString name)
+	{
+		_parameterNameList.removeOne(name);
+	}
+
+	void DataManager::appendParaGroupNameList(QString name)
+	{
+		if (_paraGroupNameList.contains(name))
+			return;
+
+		_paraGroupNameList.append(name);
+	}
+
+	QList<QString> DataManager::getParaGroupNameList()
+	{
+		return _paraGroupNameList;
+	}
+
+	void DataManager::removeParaGroupName(QString name)
+	{
+		_paraGroupNameList.removeOne(name);
+	}
+
 	void DataManager::CopyFileToSystem(QString fileName, QString path)
 	{
 		QDir iconDir(path);
@@ -655,6 +691,8 @@ namespace FastCAEDesigner
 	//20200324
 	void DataManager::setIconNameList(QString iconName)
 	{
+		if (iconName.isEmpty())
+			return;
 		_iconNameList.append(iconName);
 	}
 
@@ -680,14 +718,14 @@ namespace FastCAEDesigner
 	}
 
 	//20200325 xuxinwei
-	void DataManager::setAllParameterListDict(QString name, QList<DataProperty::ParameterBase*> list)
+	void DataManager::setAllParameterListDict(int type, QList<DataProperty::ParameterBase*> list)
 	{
-		_allParameterDict.insert(name, list);
+		_allParameterDict.insert(type, list);
 	}
 
-	QList<DataProperty::ParameterBase*> DataManager::getAllParameterList(QString caseName)
+	QList<DataProperty::ParameterBase*> DataManager::getAllParameterList(int type)
 	{
-		return _allParameterDict[caseName];
+		return _allParameterDict[type];
 	}
 
 // 	void DataManager::setParametersLinkageList(QList<FastCAEDesigner::ParametersLinkage*> list)
@@ -702,14 +740,14 @@ namespace FastCAEDesigner
 	//20200325 xuxinwei
 
 
-	void DataManager::setAllParameterGroupListDict(QString name, QList<DataProperty::ParameterGroup*> list)
+	void DataManager::setAllParameterGroupListDict(int type, QList<DataProperty::ParameterGroup*> list)
 	{
-		_allParameterGroupDict.insert(name, list);
+		_allParameterGroupDict.insert(type, list);
 	}
 
-	QList<DataProperty::ParameterGroup*> DataManager::getAllParameterGroupList(QString caseName)
+	QList<DataProperty::ParameterGroup*> DataManager::getAllParameterGroupList(int type)
 	{
-		return _allParameterGroupDict[caseName];
+		return _allParameterGroupDict[type];
 	}
 
 	void DataManager::setTreeList(QString name)

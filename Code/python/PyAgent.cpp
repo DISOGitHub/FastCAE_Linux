@@ -7,6 +7,7 @@
 #include "moduleBase/messageWindowBase.h"
 #include "mainWindow/mainWindow.h"
 #include "PyInterpreter.h"
+#include "RecordScript.h"
 #include "ScriptReader.h"
 #include <QFile>
 #include <QDebug>
@@ -34,6 +35,7 @@ namespace Py
 	void PythonAagent::connectSignals()
 	{
 		connect(this, SIGNAL(printInfo(int, QString)), _mainWindow, SIGNAL(printMessageSig(int, QString)));
+		connect(this, SIGNAL(closeMainWindow()), _mainWindow, SIGNAL(closeMainWindow()));
 	}
 
 	void PythonAagent::appCodeList(QString code)
@@ -46,6 +48,7 @@ namespace Py
 	PythonAagent::PythonAagent()
 	{
 		_interpreter = new PyInterpreter;
+	
 	}
 
 	void PythonAagent::initialize(GUI::MainWindow* m)
@@ -85,22 +88,37 @@ namespace Py
 			else
 				emit printInfo((int)ModuleBase::Normal_Message, tr("Python Initialized"));
 		}
+		
+		_recordScript = new RecordThread;
+		_recordScript->start();
 	}
 
 	void PythonAagent::finalize()
 	{
-		if (Py_IsInitialized())
-			Py_Finalize();
-		
 		if (_reader != nullptr)
 		{
 			if (_reader->isRunning())
+			{
+				_reader->stop();
 				_reader->quit();
+				_reader->wait();
+			}
+			while (_reader->isRunning());
 			delete _reader;
 			_reader = nullptr;
 		}
+
+		_recordScript->stop();
+		_recordScript->quit();
+		_recordScript->wait();
+		delete _recordScript;
+
 		if (_interpreter != nullptr) delete _interpreter;
 
+		if (Py_IsInitialized())
+			Py_Finalize();
+		
+		
 	}
 
 	void PythonAagent::submit(QString code, bool s)
@@ -114,8 +132,7 @@ namespace Py
 		{
 			if (_reader != nullptr)
 				_reader->restart();
-		}
-		
+		}		
 	}	
 
 	void PythonAagent::submit(QStringList codes, bool save /*= true*/)
@@ -127,9 +144,9 @@ namespace Py
 		}
 	}
 
-	void PythonAagent::saveScript(QString filename)
+	void PythonAagent::saveScript(QString fileName)
 	{
-		QFile file(filename);
+		QFile file(fileName);
 		if (!file.open(QIODevice::Text | QIODevice::WriteOnly))
 		{
 			emit printInfo(ModuleBase::Error_Message, tr("Script open failed"));
@@ -143,15 +160,17 @@ namespace Py
 			stream << s << endl;
 		}
 		file.close();
-		emit printInfo(ModuleBase::Normal_Message, tr("Script Saved %1").arg(filename));
+		emit printInfo(ModuleBase::Normal_Message, tr("Script Saved %1").arg(fileName));
 	}
 
-	void PythonAagent::execScript(QString filename)
+	bool PythonAagent::execScript(QString fileName)
 	{
-		if (_reader != nullptr) return;
-		_reader = new ScriptReader(filename, this);
+		if (_reader != nullptr) return false;
+		_reader = new ScriptReader(fileName, this);
+		_recordScript->pause();
 		connect(_reader, SIGNAL(finished()), this, SLOT(readerFinished()));
 		_reader->start();
+		return true;
 	}
 
 	void PythonAagent::readerFinished()
@@ -159,6 +178,8 @@ namespace Py
 		if (_reader != nullptr)
 			delete _reader;
 		_reader = nullptr;
+		_recordScript->reStart();
+		if (_noGUI) emit closeMainWindow();
 	}
 
 	void PythonAagent::lock()
@@ -180,9 +201,16 @@ namespace Py
 
 	QStringList PythonAagent::getcodelist()
 	{
-		return _interpreter->getCode();
+		if(_interpreter != nullptr)
+			return _interpreter->getCode();
+		return QStringList();
 	}
 
+
+	void PythonAagent::setNoGUI(bool nogui)
+	{
+		_noGUI = nogui;
+	}
 
 	void PythonAagent::appendOn()
 	{

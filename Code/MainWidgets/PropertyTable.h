@@ -48,7 +48,7 @@ namespace MainWidget
 		void updateTable(DataProperty::DataBase* data);
 		//З­вы
 		void retranslate();
-		
+
 
 	private:
 		void fillProp();
@@ -60,7 +60,7 @@ namespace MainWidget
 		void clearObserver();
 		void appendObserver(DataProperty::ParameterBase* p);
 
-	private slots:
+		private slots:
 		void clickItem(QTableWidgetItem* item);
 		void clickCell(int row, int col);
 		void updateTable();
@@ -74,7 +74,7 @@ namespace MainWidget
 		QTableWidgetItem* _propRoot{};
 		QTableWidgetItem* _paraRoot{};
 		QHash<QWidget*, QList<int>> _widgetRowHash{};
-		
+
 		QList<ConfigOption::ParameterObserver*> _observerList{};
 
 		QList<QPushButton*> _buttonList{};
@@ -84,24 +84,6 @@ namespace MainWidget
 	};
 
 
-	class Monitor :public QThread
-	{
-		Q_OBJECT
-	public:
-		Monitor(PropertyTable* tab, QTableWidget* w);
-		~Monitor();
-		void run() override;
-
-	private slots:
-		void onTimeOut();
-
-	private:
-		QTimer* _timer{};
-		PropertyTable* _table{};
-		QTableWidget* _w{};
-		bool _visible = false;
-
-	};
 }
 
 #endif

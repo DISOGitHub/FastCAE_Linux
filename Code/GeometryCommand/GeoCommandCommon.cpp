@@ -19,8 +19,16 @@
 #include <algorithm>
 #include <BRepBuilderAPI_MakeSolid.hxx>
 #include <BRepTools_ReShape.hxx>
+#include <BRepBuilderAPI_Copy.hxx>
 #include <ModelRefine.h>
 #include <QDebug>
+#include "geometry/geometrySet.h"
+#include <Geom_TrimmedCurve.hxx>
+#include <GeomConvert.hxx>
+#include <GeomAdaptor_Curve.hxx>
+#include <GCPnts_UniformAbscissa.hxx>
+#include <CPnts_AbscissaPoint.hxx>
+#include <BRepGProp.hxx>
 
 namespace Command
 {
@@ -132,6 +140,10 @@ namespace Command
 
 	TopoDS_Shape GeoCommandCommon::makeFace(std::list<TopoDS_Wire>& wires)
 	{
+		if (wires.size()<1)
+		{
+			return TopoDS_Shape();
+		}
 		BRepBuilderAPI_MakeFace mkFace(wires.front());
 		const TopoDS_Face& face = mkFace.Face();
 		if (face.IsNull())
@@ -247,7 +259,8 @@ namespace Command
 				TopoDS_Face fixedFace = TopoDS::Face(fix.Shape());
 				aChecker.Init(fixedFace);
 				if (!aChecker.IsValid())
-					Standard_Failure::Raise("Failed to validate broken face");
+					return TopoDS_Face();
+					//Standard_Failure::Raise("Failed to validate broken face");
 				return fixedFace;
 			}
 			return mkFace.Face();
@@ -382,5 +395,59 @@ namespace Command
 		
 		return true;
 	}
+
+	TopoDS_Shape GeoCommandCommon::removeShape(TopoDS_Shape* inputShape, TopoDS_Shape* component)
+	{
+
+		TopoDS_Shape copyshape = BRepBuilderAPI_Copy(*inputShape);
+
+		Handle(TopoDS_TShape) hand1 = inputShape->TShape();
+		Handle(TopoDS_TShape) hand2 = component->TShape();
+		if (hand1 == hand2)
+		{
+			*inputShape = TopoDS_Shape();
+			return copyshape;
+		}
+		BRep_Builder builder;
+		builder.Remove(*inputShape, *component);
+		return copyshape;
+	}
+
+
+/*
+	gp_Ax2 GeoCommandCommon::getEdgeAxis(Geometry::GeometrySet* set, int edgeindex)
+	{
+		TopoDS_Shape* shape = set->getShape();
+		TopExp_Explorer edgeExp(*shape, TopAbs_EDGE);
+		for (int index = 0; index < edgeindex && edgeExp.More(); edgeExp.Next(), ++index);
+
+		const TopoDS_Shape& edgeShape = edgeExp.Current();
+		if (edgeShape.IsNull()) return;
+		const TopoDS_Edge &edgeone = TopoDS::Edge(edgeShape);
+		if (edgeone.IsNull()) return;
+
+
+		Standard_Real first, last;
+		Handle(Geom_Curve) &curve = BRep_Tool::Curve(edgeone, first, last);
+		Handle(Geom_TrimmedCurve) myTrimmed = new Geom_TrimmedCurve(curve, first, last);
+		Handle(Geom_BSplineCurve) NurbsCurve = GeomConvert::CurveToBSplineCurve(myTrimmed);
+
+		GeomAdaptor_Curve GAC(NurbsCurve);
+		GCPnts_UniformAbscissa UA(GAC, 200);
+		if (!UA.IsDone()) return;
+		Standard_Real n = UA.NbPoints();
+		for (int i = 0; i < n; ++i)
+		{
+			Standard_Real parami = UA.Parameter(i + 1);
+			gp_Pnt tpnt;
+			gp_Vec vpnt;
+			curve->D1(parami, tpnt, vpnt);
+		}
+	}*/
+	/*
+	gp_Ax2 GeoCommandCommon::getFaceAxis(Geometry::GeometrySet* set, int index)
+	{
+		return gp_Ax2;
+	}*/
 
 }

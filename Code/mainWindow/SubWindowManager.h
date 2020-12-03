@@ -88,6 +88,7 @@ namespace GUI
 		void setViewValueSig(int id, QString win, int x1, int x2, int x3, int y1, int y2, int y3, int z1, int z2, int z3);
 		void saveImageSig(int w, int h, int id, QString win, QString file);
 		void openPreWindowSig();
+		void clearSelectModelSig();
 
 	public slots:
 		//打开起始页
@@ -126,7 +127,7 @@ namespace GUI
 		void setView(QString view);
 		
 		//保存图片
-		void saveImage(QString filename, int winType, Post::PostWindowBase*winhandle, int w, int h);
+		void saveImage(QString fileName, int winType, Post::PostWindowBase*winhandle, int w, int h);
 		void saveImage(int w, int h, QString f);
 		
 

@@ -8,7 +8,7 @@
 #include <QDir>
 #include <QByteArray>
 #include <string>
-
+#include <QReadWriteLock>
 
 namespace Py
 {
@@ -42,11 +42,14 @@ namespace Py
 
 	int PyInterpreter::execCode(QString code, bool save)
 	{
+		QReadWriteLock lock;
+		lock.lockForRead();
 		std::string s = code.toStdString();
 		const char* c = s.c_str();
 		qDebug() << "exec: " << code;
-	
+				
 		int ok = PyRun_SimpleStringFlags(c,NULL);
+		
 		if (ok == -1)
 		{
 			QString error = QString(tr("Exception occurred at: \"%1\"")).arg(code);
@@ -55,8 +58,10 @@ namespace Py
 	
 		if (save)
 			_codelist.append(code);
+		lock.unlock();
 		return ok;
 	}
+
 	void PyInterpreter::execFile(QString file)
 	{
 		QByteArray la = file.toLocal8Bit();
@@ -64,8 +69,7 @@ namespace Py
 		FILE * fp = nullptr;
 		fp = fopen(c, "r");
 		if (fp != nullptr)
-			PyRun_SimpleFile(fp,c);
-		
+			PyRun_SimpleFile(fp,c);		
 	}
 
 	int PyInterpreter::getCodeCount()
@@ -90,6 +94,4 @@ namespace Py
 	{
 		return _codelist;
 	}
-
-
 }

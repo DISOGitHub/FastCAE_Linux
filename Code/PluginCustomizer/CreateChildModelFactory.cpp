@@ -13,7 +13,7 @@ namespace FastCAEDesigner
 		if (parentModelType == TreeItemType::ProjectRoot)
 			return nullptr;
 
-		if (parentModelType == TreeItemType::ProjectMesh)
+		if (parentModelType == TreeItemType::ProjectComponent)
 			return nullptr;
 		
 		if (parentModelType == TreeItemType::ProjectSimulationSetting)
@@ -36,6 +36,12 @@ namespace FastCAEDesigner
 
 		if (parentModelType == TreeItemType::ProjectPost3DGraph)
 			return new Post3DFileModel(nameEng, nameChn, icon,TreeItemType::ProjectPost3DGraphChild, parent);
+
+		if (parentModelType == TreeItemType::ProjectSolverChild)
+			return new CustomParameterModel(nameEng, nameChn, icon, TreeItemType::ProjectSolverGrandSon, parent);
+
+		if (parentModelType == TreeItemType::ProjectSimulationSettingChild)
+			return new CustomParameterModel(nameEng, nameChn, icon, TreeItemType::ProjectSimulationSettingGrandSon, parent);
 
 		return nullptr;
 

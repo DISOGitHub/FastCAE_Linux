@@ -27,27 +27,34 @@ namespace GUI
 		~SignalHandler();
 
 	signals:
-		void importMeshPySig(QStringList);
-		void exportMeshPySig(QString);
+		void importMeshPySig(QString, QString, int);
+		void exportMeshPySig(QString, QString, int);
 		void open3DGraphWindowPySig();
 		void open2DPlotWindowPySig();
 		bool openProjectFileSig(QString fileName);
-		void saveToProjectFileSig(QString filename);
+		void saveToProjectFileSig(QString fileName);
 		void solveProjectSig(int projectIndex, int solverIndex);
+		void projectFileProcessedSig(QString file, bool success, bool isread);
 		
 
 	public:
-		bool importMesh(const QStringList &filenames);
+		//不要通过返回值判断
 		bool importGeometry(const QStringList &filenames);
 		bool exportGeometry(QString f);
 		QString getMD5();
 		/*创建工程 */
 		void on_actionNew();
+		///获取求解管理器
+		SolveProcessManager* getSolveProcessManager();
+		
 	
-
 	public slots:
+		//导入网格
+		bool importMeshSlot(const QString &fileName, const QString& suffix, int modelId);
+		//导出网格
+		bool exportMeshSlot(const QString &fileName, const QString& suffix, int modelId);
 		///清除数据
-		void clearData();
+		void clearData(bool unlock = true);
 		/*求解 */
 		void on_actionSolve();
 		/*切换为英语 */
@@ -63,13 +70,12 @@ namespace GUI
 		void generateSurfaceMesh();
 		///生成体网格
 		void generateSolidMesh();
+		//生成流体域网格
+		void generateFluidMesh();
 		///生成网格
 		void genMesh();
 		//添加求解器生成网格
 		void appendGeneratedMesh(QString name, vtkDataSet* dataset);
-		//导出网格
-		void exportMeshByID(QString filename, int kenerlID = -1);
-		void exportMeshPy(QString filename);
 		///刷新Action状态
 		void updateActionsStates();
 		//独立打开2D后处理窗口
@@ -83,7 +89,8 @@ namespace GUI
 		//保存图片
 		void saveImange();
 		bool openProjectFile(QString fileName);
-		void saveToProjectFile(QString filename);
+		void projectFileProcessed(QString filename, bool success, bool read);
+		void saveToProjectFile(QString fileName);
 		//检查网格质量
 		void meshChecking();
 		//显示用户引导
@@ -123,8 +130,10 @@ namespace GUI
 		void showDialog(QDialog* d);
 		void MakeMatrix();
 		void MeasureDistance();
-		//void showDemo();
-
+		void GeoSplitter();
+		void MakeFillHole();
+		void MakeRemoveSurface();
+		void MakeFillGap();
 	private:
 		void handleSingleClickEvent(QTreeWidgetItem*item, int proID);
 		void openPreWinPy();
@@ -138,6 +147,5 @@ namespace GUI
 
 	};
 }
-
 
 #endif

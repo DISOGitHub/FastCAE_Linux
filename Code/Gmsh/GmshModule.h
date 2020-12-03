@@ -39,18 +39,24 @@ namespace Gmsh
 	   void exec(int commandType, MainWidget::PreWindow* pre);
 	   //结束
 	   void finalize();
-
+	   //初始化一个GmshThread
+	   GmshThread* iniGmshThread(GMshPara*);
+	   //获取线程管理者
+	   GmshThreadManager* getGmshThreadManager();
+	   
 	signals:
 		void showDialog(QDialog* d);
 		void updateMeshTree();
 		void updateActions();
 		void generateSig(GMshPara* para);
 		void printMessageToMessageWindow(ModuleBase::Message message);
+		void updateSetTree();
 
 	private slots:
 		void preWindowOpened(MainWidget::PreWindow*);
 		void preWindowClosed();
 		void generateSlot(GMshPara* para);
+		void editMesh(int dim, int index);
 
 	private:
 		GmshModule(GUI::MainWindow* m);

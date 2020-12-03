@@ -59,13 +59,17 @@ namespace MainWidget
 		_ui->projectTab->resize(300, 200);
 
 		_ui->propTabWidget->setTabPosition(QTabWidget::South);
-		
-//		registerEnabledModule();
+
+		//		registerEnabledModule();
 		connect(_mainWindow, SIGNAL(updateProperty(DataProperty::DataBase*)), this, SLOT(updataPropertyTab(DataProperty::DataBase*)));
 		connect(_ui->projectTab, SIGNAL(currentChanged(int)), this, SLOT(changePropTabByProjectPage(int)));
 		connect(_mainWindow, SIGNAL(updateParaWidget(QWidget*)), this, SLOT(updataParaWidget(QWidget*)));
 		connect(this, SIGNAL(updateActionStates()), _mainWindow, SIGNAL(updateActionStatesSig()));
 		connect(_physicsWidget, SIGNAL(updatePropertyTableTree()), _propTable, SLOT(updateTable()));
+		connect(_meshWidget, SIGNAL(removeCaseComponentSig(int)), _physicsWidget, SLOT(removeCaseComponentSlot(int)));
+		connect(_meshWidget, SIGNAL(renameCaseComponentSig(int)), _physicsWidget, SLOT(renameCaseComponentSlot(int)));
+		connect(_geometryWidget, SIGNAL(removeCaseComponentSig(int)), _physicsWidget, SLOT(removeCaseComponentSlot(int)));
+		connect(_geometryWidget, SIGNAL(renameCaseComponentSig(int)), _physicsWidget, SLOT(renameCaseComponentSlot(int)));
 	}
 	void ControlPanel::resizeEvent(QResizeEvent *e)
 	{
@@ -84,9 +88,9 @@ namespace MainWidget
 		_ui->retranslateUi(this);
 		updataPropertyTab(_data);
 		DockWidgetBase::reTranslate();
-//		setHorizontalHeader( tr("Name"), tr("Property"));
+		//		setHorizontalHeader( tr("Name"), tr("Property"));
 		_propTable->retranslate();
-//		_physicsWidget->updateTree();
+		//		_physicsWidget->updateTree();
 		_physicsWidget->reTranslate();
 		if (_meshWidget != nullptr)
 			_meshWidget->updateTree();
@@ -95,12 +99,14 @@ namespace MainWidget
 
 		_ui->propTabWidget->setCurrentIndex(index);
 	}
+
 	void ControlPanel::on_TreeMouseEvent(int evevntType, QTreeWidgetItem* item, int proID)
 	{
 		Q_UNUSED(evevntType);
 		Q_UNUSED(item);
 		Q_UNUSED(proID);
 	}
+
 	void ControlPanel::updataPropertyTab(DataProperty::DataBase* data)
 	{
 		_ui->propTabWidget->setCurrentIndex(0);
@@ -123,20 +129,20 @@ namespace MainWidget
 			_postProp = nullptr;
 		}
 
-// 		_ui->projectTab->setCurrentIndex(2);
-// 		_ui->propTabWidget->setCurrentIndex(0);
+		// 		_ui->projectTab->setCurrentIndex(2);
+		// 		_ui->propTabWidget->setCurrentIndex(0);
 
 		if (tree != nullptr)
 		{
 			_ui->postLayout->addWidget(tree);
 			_postTree = tree;
-//			_ui->projectTab->setCurrentIndex(3);
+			//			_ui->projectTab->setCurrentIndex(3);
 		}
 		if (prop != nullptr)
 		{
 			_ui->postPropLayout->addWidget(prop);
 			_postProp = prop;
-//			_ui->propTabWidget->setCurrentIndex(1);
+			//			_ui->propTabWidget->setCurrentIndex(1);
 		}
 
 	}
@@ -195,12 +201,36 @@ namespace MainWidget
 		_physicsWidget->updateMaterialStatus();
 		_ui->projectTab->setCurrentWidget(_ui->physics_tab);
 
+		QList<QWidget*> addinWidgets = _addinWidget.keys();
+		for (QWidget* w : addinWidgets)
+		{
+			_ui->projectTab->addTab(w, _addinWidget.value(w));
+			_ui->projectTab->setCurrentWidget(w);
+		}
+
 		_ui->retranslateUi(this);
 	}
 
+	void ControlPanel::addTabWidgetPlugin(QWidget* w, QString name)
+	{   
+		_addinWidget.insert(w, name);
+	}
+	
+
+	void ControlPanel::removeTabWidgetPlugin(QWidget* w)
+	{
+		_addinWidget.remove(w);
+	}
+
+	void ControlPanel::setCurrentWidget(QWidget* w)
+	{
+		_ui->projectTab->setCornerWidget(w);
+	}
+
+
 	void ControlPanel::clearWidget()
 	{
-//		_ui->propertyTable -> setRowCount(0);
+		//		_ui->propertyTable -> setRowCount(0);
 
 		if (_paraWidget != nullptr)
 		{

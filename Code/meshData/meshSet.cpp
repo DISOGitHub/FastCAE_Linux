@@ -1,8 +1,9 @@
 #include "meshSet.h"
-#include "setMember.h"
+//#include "setMember.h"
 #include "meshSingleton.h"
 #include "meshKernal.h"
 #include <QDomElement>
+#include <QDataStream>
 #include <vtkIdTypeArray.h>
 #include <vtkAppendFilter.h>
 #include <vtkUnstructuredGrid.h>
@@ -16,34 +17,38 @@
 
 namespace MeshData
 {
-	int MeshSet::maxID = 0;
+	//int MeshSet::maxID = 0;
 
-	MeshSet::MeshSet(QString name, SetType t)
+	MeshSet::MeshSet(QString name, SetType t) : ComponentBase(DataProperty::ComponentType::MESH)
 	{
-		maxID++;
-		setID(maxID);
+//		maxID++;
+//		setID(maxID);
 		setName(name);
 		setType(t);
-		_member = new SetMember;
+//		_member = new SetMember;
 	}
-	MeshSet::MeshSet()
+
+	MeshSet::MeshSet() : ComponentBase(DataProperty::ComponentType::MESH)
 	{
-		maxID++;
-		setID(maxID);
+//		maxID++;
+//		setID(maxID);
 //		setName(name);
-		_member = new SetMember;
+//		_member = new SetMember;
 	}
+
 	MeshSet::~MeshSet()
 	{
-		if (_member != nullptr) delete _member;
+//		if (_member != nullptr) delete _member;
 		if (_displayDataSet != nullptr) _displayDataSet->Delete();
 	}
-	void MeshSet::setID(int id)
-	{
-		DataBase::setID(id);
-		if (maxID < id)
-			maxID = id;
-	}
+
+// 	void MeshSet::setID(int id)
+// 	{
+// 		DataBase::setID(id);
+// 		if (maxID < id)
+// 			maxID = id;
+// 	}
+
 	void MeshSet::setType(SetType t)
 	{
 		_type = t;
@@ -57,19 +62,21 @@ namespace MeshData
 		}
 		this->appendProperty("Type", stype);
 	}
+
 	SetType MeshSet::getSetType()
 	{
 		return _type;
 	}
-	int MeshSet::getMaxID()
-	{
-		return maxID;
-	}
 
-	void MeshSet::resetMaxID()
-	{
-		maxID = 0;
-	}
+// 	int MeshSet::getMaxID()
+// 	{
+// 		return maxID;
+// 	}
+// 
+// 	void MeshSet::resetMaxID()
+// 	{
+// 		maxID = 0;
+// 	}
 
 	void MeshSet::appendMember(int ker, int id)
 	{
@@ -81,17 +88,18 @@ namespace MeshData
 	{
 		return _members.uniqueKeys();
 	}
+
 	QList<int> MeshSet::getKernalMembers(int k)
 	{
 		if (_members.contains(k))
 			return _members.values(k);
 		return QList<int>();
 	}
+
 	int MeshSet::getAllCount()
 	{
 		return _members.size();
 	}
-
 
 	QDomElement& MeshSet::writeToProjectFile(QDomDocument* doc, QDomElement* parent)
 	{
@@ -117,7 +125,8 @@ namespace MeshData
 			QDomElement memle = doc->createElement("Member");
 			QList<int> memids = _members.values(kid);
 			QStringList text;
-			for (int id : memids) text.append(QString::number(id));
+			for (int id : memids) 
+				text.append(QString::number(id));
 			QDomText memText = doc->createTextNode(text.join(","));
 			memle.appendChild(memText);
 
@@ -169,7 +178,7 @@ namespace MeshData
 	{
 		if (_displayDataSet != nullptr) return;
 		if (_members.isEmpty()) return;
-		this->appendProperty("Count", _members.values().size());
+		appendProperty("Count", _members.values().size());
 
 		MeshData* meshdata = MeshData::getInstance();
 		QList<int> kids = _members.uniqueKeys();
@@ -212,7 +221,6 @@ namespace MeshData
 		
 		_displayDataSet = vtkUnstructuredGrid::New();
 		_displayDataSet->DeepCopy(appendFliter->GetOutput());
-
 	}
 
 	vtkDataSet* MeshSet::getDisplayDataSet()
@@ -292,6 +300,16 @@ namespace MeshData
 		*s << _id << _name << _members.size();
 	}
 
+	void MeshSet::isVisible(bool v)
+	{
+		_visible = v;
+	}
+
+	bool MeshSet::isVisible()
+	{
+		return _visible;
+	}
+
 	void MeshSet::merge(MeshSet* set)
 	{
 		if (set->getSetType() != _type) return;
@@ -317,8 +335,17 @@ namespace MeshData
 		}
 	}
 
-
-
-
-
+	QString MeshSet::setTypeToString(SetType type)
+	{
+		QString qtype{};
+		switch (type)
+		{
+			case Node : qtype = "Node"; break;
+			case Element : qtype = "Element"; break;
+			case Family : qtype = "Family"; break;
+			case BCZone : qtype = "BCZone"; break;
+			default : break;
+		}
+		return qtype;
+	}
 }

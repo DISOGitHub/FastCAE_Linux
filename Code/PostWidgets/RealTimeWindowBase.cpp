@@ -80,10 +80,10 @@ namespace Post
 		emit closeWindow(this);
 		QWidget::closeEvent(e);
 	}
-	void RealTimeWindowBase::updatePlot(QString filename)
+	void RealTimeWindowBase::updatePlot(QString fileName)
 	{
-		if (!_fileNames.contains(filename)) return;
-		this->readFile(filename);
+		if (!_fileNames.contains(fileName)) return;
+		this->readFile(fileName);
 		this->reDraw();
 	}
 	void RealTimeWindowBase::endMonitor(int proid)
@@ -125,6 +125,7 @@ namespace Post
 		while (!_stream->atEnd())
 		{
 			line = this->readLine();
+			if (line.startsWith("#")) continue;
 			QStringList sdata = line.split(" ");
 			if (sdata.size() != variableName.size()) continue;
 			for (int i = 0; i < sdata.size(); ++i)

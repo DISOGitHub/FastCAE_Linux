@@ -1,4 +1,4 @@
-export PATH=/opt/Qt5.4.2/5.4/gcc_64/bin/:$PATH
+export PATH=/opt/Qt5.14.2/5.14.2/gcc_64/bin/:$PATH
 
 cd python
 qmake -o Makefile python.pro
@@ -68,6 +68,10 @@ cd ../PostWidgets
 qmake -o Makefile PostWidgets.pro
 make ver=release
 
+cd ../GeometryDataExchange
+qmake -o Makefile GeometryDataExchange.pro 
+make ver=release
+
 cd ../IO
 qmake -o Makefile IO.pro
 make ver=release
@@ -106,7 +110,7 @@ qmake -o Makefile GmshModule.pro
 make ver=release
 
 cd ../UserGuidence
-qmake -o Makefile mainWindow.pro
+qmake -o Makefile UserGuidence.pro
 make ver=release
 
 cd ../mainWindow
@@ -116,3 +120,14 @@ make ver=release
 cd ../main
 qmake -o Makefile main.pro
 make ver=release
+
+
+cd ../PluginMeshDataExchange
+qmake -o Makefile meshDataExchangePlugin.pro
+make ver=release
+
+cd ../PluginCustomizer
+qmake -o Makefile pluginCustomizer.pro
+make ver=release
+
+

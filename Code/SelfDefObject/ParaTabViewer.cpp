@@ -50,8 +50,8 @@ namespace SelfDefObj
 		{
 			for (int j = 0; j < c; ++j)
 			{
-				double d = _data->getValue(i, j);
-				_tableWidget->setItem(i, j, new QTableWidgetItem(QString::number(d)));
+				QString d = _data->getValue(i, j);
+				_tableWidget->setItem(i, j, new QTableWidgetItem( d ));
 				
 			}
 
@@ -78,9 +78,9 @@ namespace SelfDefObj
 		this->accept();
 	}
 
-	DataProperty::ParameterTable* ParaTabViewer::readCSV(QString filename)
+	DataProperty::ParameterTable* ParaTabViewer::readCSV(QString fileName)
 	{
-		QFile file(filename);
+		QFile file(fileName);
 		QString line;
 
 		
@@ -143,8 +143,8 @@ namespace SelfDefObj
 		{
 			for (int j = 0; j < c; ++j)
 			{
-				double d = table->getValue(i, j);
-				_tableWidget->setItem(i, j, new QTableWidgetItem(QString::number(d)));
+				QString d = table->getValue(i, j);
+				_tableWidget->setItem(i, j, new QTableWidgetItem(d));
 			}
 		}
 		delete table;

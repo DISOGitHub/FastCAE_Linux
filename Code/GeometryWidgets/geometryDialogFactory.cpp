@@ -20,6 +20,10 @@
 #include "dialogMakeSweep.h"
 #include "dialogMoveFeature.h"
 #include "dialogMakeRevol.h"
+#include "dialogGeoSplitter.h"
+#include "dialogMakeFillHole.h"
+#include "dialogMakeFillGap.h"
+#include "dialogMakeRemoveSurface.h"
 namespace GeometryWidget
 {
 	QDialog* GeometryDialogFactory::editGeometryDialog(GUI::MainWindow* m, MainWidget::PreWindow* p, Geometry::GeometrySet* set)
@@ -68,6 +72,14 @@ namespace GeometryWidget
 			dlg = new SweepDialog(m, p, set); break;
 		case  Geometry::GeometryParaMakeRevol:
 			dlg = new CreateRevolDialog(m, p, set); break; 
+		case  Geometry::GeometryParaSplitter:
+			dlg = new GeoSplitterDialog(m, p, set); break;
+		case  Geometry::GeometryParaFillHole:
+			dlg = new MakeFillHoleDialog(m, p, set); break;
+		case  Geometry::GeometryParaRemoveSurface:
+			dlg = new MakeRemoveSurfaceDialog(m, p, set); break;
+		case  Geometry::GeometryParaFillGap:
+			dlg = new MakeFillGapDialog(m, p, set); break;
 		default:
 			break;
 		}

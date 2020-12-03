@@ -28,6 +28,7 @@ namespace MeshData
 //		_mesh = vtkSmartPointer<vtkUnstructuredGrid>::New();
 		appendProperty(QObject::tr("Visible"), _visible);
 	}
+
 	void MeshKernal::setMeshData(vtkDataSet* dataset)
 	{
 		_mesh = dataset;
@@ -38,57 +39,69 @@ namespace MeshData
 		appendProperty(QObject::tr("Points"), (int)dataset->GetNumberOfPoints());
 		appendProperty(QObject::tr("Cells"), (int)dataset->GetNumberOfCells());
 	}
+
 	vtkDataSet* MeshKernal::getMeshData()
 	{
 		return _mesh;
 	}
+
 	double* MeshKernal::getPointAt(const int index)
 	{
 		return _mesh->GetPoint(index);
 	}
+
 	vtkCell* MeshKernal::getCellAt(const int index)
 	{
 		return _mesh->GetCell(index);
 	}
+
 	bool MeshKernal::isVisible()
 	{
 		return _visible;
 	}
+
 	void MeshKernal::setVisible(bool v)
 	{
 		_visible = v;
 		appendProperty(QObject::tr("Visible"), _visible);
 	}
+
 	void MeshKernal::dataToStream(QDataStream* s)
 	{
 		*s << _id << _name << _mesh->GetNumberOfPoints() << _mesh->GetNumberOfCells();
 	}
+
 	void MeshKernal::setID(int id)
 	{
 		DataBase::setID(id);
 		if (id > idOffset)
 			idOffset = id;
 	}
+
 	void MeshKernal::setPath(const QString& path)
 	{
 		_path = path;
 	}
+
 	QString MeshKernal::getPath()
 	{
 		return _path;
 	}
+
 	void MeshKernal::setPointIDOFfset(int offset)
 	{
 		_pointIDOffset = offset;
 		if (pointIDOffset < offset)
 			pointIDOffset = offset;
 	}
+
 	void MeshKernal::setCellIDOFfset(int offset)
 	{
 		_cellIDOffset = offset;
 		if (_cellIDOffset < offset)
 			cellIDOffset = offset;
 	}
+
 	QDomElement& MeshKernal::writeToProjectFile(QDomDocument* doc, QDomElement* parent)
 	{
 		QDomElement kernelele = doc->createElement("MeshKernel");
@@ -160,6 +173,7 @@ namespace MeshData
 		parent->appendChild(kernelele);
 		return kernelele;
 	}
+
 	void MeshKernal::readDataFromProjectFile(QDomElement* kernelele)
 	{
 		QString sid = kernelele->attribute("ID");
@@ -222,6 +236,7 @@ namespace MeshData
 	
 		this->setMeshData(ung);
 	}
+
 	int MeshKernal::getPointCount()
 	{
 		if (_mesh != nullptr)
@@ -229,22 +244,26 @@ namespace MeshData
 			return _mesh->GetNumberOfPoints();
 		return -1;
 	}
+
 	int MeshKernal::getCellCount()
 	{
 		if (_mesh != nullptr)
 			return _mesh->GetNumberOfCells();
 		return -1;
 	}
+
 	void MeshKernal::resetOffset()
 	{
 		idOffset = 0;
 		pointIDOffset = 1;
 		cellIDOffset = 1;
 	}
+
 	void MeshKernal::setDimension(int d)
 	{
 		_dimension = d;
 	}
+
 	int MeshKernal::getDimension()
 	{
 		return _dimension;
@@ -331,5 +350,37 @@ namespace MeshData
 
 		this->setMeshData(ung);
 	}
+
+	void MeshKernal::setGmshSetting(DataProperty::DataBase* data)
+	{
+		_gmshSetting = data;
+	}
+
+	DataProperty::DataBase* MeshKernal::getGmshSetting()
+	{
+		return _gmshSetting;
+	}
+
+	void MeshKernal::setSpecificColor(bool enable, QColor c)
+	{
+		_specificColor.first = enable;
+		_specificColor.second = c;
+	}
+
+	void MeshKernal::setSpecificColor(bool enable, double r, double g, double b, double alpha)
+	{
+		_specificColor.first = enable;
+		_specificColor.second.setRedF(r);
+		_specificColor.second.setGreenF(g);
+		_specificColor.second.setBlueF(b);
+		_specificColor.second.setAlpha(alpha);
+	}
+
+	QColor MeshKernal::getSpecificColor(bool &isEnable)
+	{
+		isEnable = _specificColor.first;
+		return _specificColor.second;
+	}
+
 }
 

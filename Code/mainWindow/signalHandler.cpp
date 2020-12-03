@@ -7,18 +7,10 @@
 #include <QDir>
 #include <QProcess>
 #include <QMessageBox>
-#include <QDebug>
 #include <assert.h>
 #include <QFileDialog>
 #include "settings/busAPI.h"
-#include "meshData/vtkReader.h"
 #include "meshData/meshKernal.h"
-#include "meshData/NeuReader.h"
-#include "meshData/mshReader.h"
-#include "meshData/cgnsReader.h"
-#include "meshData/inpReader.h"
-#include "meshData/cntmReader.h"
-#include "geometry/geometryReader.h"
 #include "ModelData/modelDataSingleton.h"
 #include "ModelData/modelDataBase.h"
 #include "geometry/geometryData.h"
@@ -71,8 +63,13 @@
 #include "GeometryWidgets/dialogCreateCylindricalComplex.h"
 #include "GeometryWidgets/dialogCreateBoxComplex.h"
 #include "GeometryWidgets/dialogMeasureDistance.h"
+#include "GeometryWidgets/dialogGeoSplitter.h"
+#include "GeometryWidgets/dialogMakeFillHole.h"
+#include "GeometryWidgets/dialogMakeRemoveSurface.h"
+#include "GeometryWidgets/dialogMakeFillGap.h"
 #include "Gmsh/GmshModule.h"
 #include "UserGuidence/DialogUserGuidence.h"
+#include "moduleBase/ThreadControl.h"
 
 namespace GUI
 {
@@ -83,11 +80,11 @@ namespace GUI
 		connect(mainwindow, SIGNAL(solveProjectSig(int, int)), this, SLOT(solveProjectPy(int, int)));//liu
 		connect(mainwindow->getUi()->actionSurfaceMesh, SIGNAL(triggered()), this, SLOT(generateSurfaceMesh()));
 		connect(mainwindow->getUi()->actionSolidMesh, SIGNAL(triggered()), this, SLOT(generateSolidMesh()));
+		connect(mainwindow->getUi()->actionFluidMesh, SIGNAL(triggered()), this, SLOT(generateFluidMesh()));
 		connect(mainwindow->getUi()->actionGenMesh, SIGNAL(triggered()), this, SLOT(genMesh()));
 		connect(mainwindow, SIGNAL(appendGeneratedMesh(QString, vtkDataSet*)), this, SLOT(appendGeneratedMesh(QString, vtkDataSet*)));
 		connect(mainwindow->getUi()->actionEnglish, SIGNAL(triggered()), this, SLOT(on_actionEnglish()));
 		connect(mainwindow->getUi()->actionChinese, SIGNAL(triggered()), this, SLOT(on_actionChinese()));
-		connect(mainwindow, SIGNAL(exportMeshByIDSig(QString, int)), this, SLOT(exportMeshByID(QString, int)));
 		connect(mainwindow, SIGNAL(updateActionStatesSig()), this, SLOT(updateActionsStates()));
 		connect(mainwindow->getUi()->action2DPlot, SIGNAL(triggered()), this, SLOT(open2DPlotWindow()));
 		connect(mainwindow->getUi()->action3DGraph, SIGNAL(triggered()), this, SLOT(open3DGraphWindow()));
@@ -97,14 +94,15 @@ namespace GUI
 		connect(mainwindow, SIGNAL(showDialogSig(QDialog*)), this, SLOT(showDialog(QDialog*)));
 		connect(mainwindow, SIGNAL(clearDataSig()), this, SLOT(clearData()));
 
-		connect(this, SIGNAL(importMeshPySig(QStringList)), _mainWindow, SLOT(importMesh(QStringList)));
-		connect(this, SIGNAL(exportMeshPySig(QString)), this, SLOT(exportMeshPy(QString)));
+		connect(this, SIGNAL(importMeshPySig(QString, QString, int)), this, SLOT(importMeshSlot(QString, QString, int)));
+		connect(this, SIGNAL(exportMeshPySig(QString, QString, int)), this, SLOT(exportMeshSlot(QString, QString, int)));
 
 		connect(this, SIGNAL(open3DGraphWindowPySig()), this, SLOT(open3DGraphWindowPy()));
 		connect(this, SIGNAL(open2DPlotWindowPySig()), this, SLOT(open2DPlotWindowPy()));
 		connect(this, SIGNAL(openProjectFileSig(QString)), this, SLOT(openProjectFile(QString)));
 		connect(this, SIGNAL(saveToProjectFileSig(QString)), this, SLOT(saveToProjectFile(QString)));
 		connect(this, SIGNAL(solveProjectSig(int, int)), this, SLOT(solveProject(int, int)));
+		connect(this, SIGNAL(projectFileProcessedSig(QString, bool, bool)), this, SLOT(projectFileProcessed(QString, bool, bool)));
 
 		connect(mainwindow->getUi()->actionUser_Guidance, SIGNAL(triggered()), this, SLOT(showUserGuidence()));
 
@@ -142,6 +140,11 @@ namespace GUI
 		connect(mainwindow->getUi()->actionMakeMatrix, SIGNAL(triggered()), this, SLOT(MakeMatrix()));
 		connect(mainwindow->getUi()->actionDrawSpline, SIGNAL(triggered()), this, SLOT(DrawGraphSpline()));
 		connect(mainwindow->getUi()->actionMeasure_Distance, SIGNAL(triggered()), this, SLOT(MeasureDistance()));
+		connect(mainwindow->getUi()->actionGeoSplitter, SIGNAL(triggered()), this, SLOT(GeoSplitter()));
+
+		connect(mainwindow->getUi()->actionFillHole, SIGNAL(triggered()), this, SLOT(MakeFillHole()));
+		connect(mainwindow->getUi()->actionRemoveSurface, SIGNAL(triggered()), this, SLOT(MakeRemoveSurface()));
+		connect(mainwindow->getUi()->actionFillGap, SIGNAL(triggered()), this, SLOT(MakeFillGap()));
 		//connect(mainwindow->getUi()->actionDemo, SIGNAL(triggered()), this, SLOT(showDemo()));
 
 		_solveProcessManager = new SolveProcessManager;
@@ -158,68 +161,98 @@ namespace GUI
 	{
 		emit _mainWindow->createPhysiceModelSig();
 	}
+
+	SolveProcessManager* SignalHandler::getSolveProcessManager()
+	{
+		return _solveProcessManager;
+	}
+
 	bool SignalHandler::openProjectFile(QString fileName)
 	{
 		//add a reader
 		QFile f(fileName);
 		if (!f.exists()) return false;
 
-		this->clearData();
-		IO::ProjectFileIO reader(fileName);
-		if (!reader.read())
-		{
-			QMessageBox::warning(_mainWindow, tr("Warning"), tr("read Failed !"));
-			clearData();
-			return false;
-		}
-	
-		emit _mainWindow->updateGeometryTreeSig();
-		emit _mainWindow->updateMeshTreeSig();
-		emit _mainWindow->updateSetTreeSig();
-		emit _mainWindow->updatePhysicsTreeSignal();
-
-		Setting::BusAPI::instance()->appendRecentFile(fileName);
-		_mainWindow->setCurrentFile(fileName);
-		QString md5 = getMD5();
-		_mainWindow->setMD5(md5);
-
-		_mainWindow->getSubWindowManager()->openPreWindow();
-//		_mainWindow->getSubWindowManager()->updatePreActors();
-
-// 		ModuleBase::Message msg(ModuleBase::Normal_Message, QString("Open project file \"%1\"").arg(fileName));
-// 
-// 		emit _mainWindow->printMessageToMessageWindow(msg);
-		_mainWindow->updateRecentMenu();
-		emit _mainWindow->updateActionStatesSig();
-
-		Py::PythonAagent::getInstance()->unLock();
-		return true;
+		this->clearData(false);
 		
+		IO::ProjectFileIO* reader = new IO::ProjectFileIO(_mainWindow,this ,fileName, true);
+		ModuleBase::ThreadControl* tc = new ModuleBase::ThreadControl(reader);
+		emit tc->threadStart();
 	}
+
+	void SignalHandler::projectFileProcessed(QString fileName, bool success ,bool read)
+	{
+		ModuleBase::Message m;
+		m.type = ModuleBase::Error_Message;
+		if (success)
+			m.type = ModuleBase::Normal_Message;
+		if (read)
+		{
+			if (success)
+			{
+				emit _mainWindow->updateGeometryTreeSig();
+				emit _mainWindow->updateMeshTreeSig();
+				emit _mainWindow->updateSetTreeSig();
+				emit _mainWindow->updatePhysicsTreeSignal();
+
+				_mainWindow->setCurrentFile(fileName);
+				QString md5 = getMD5();
+				_mainWindow->setMD5(md5);
+				_mainWindow->getSubWindowManager()->openPreWindow();
+				emit _mainWindow->updateActionStatesSig();
+				m.message = QString("\"%1\" has been Opened !").arg(fileName);
+			}
+			else
+			{
+				clearData(false);
+				m.message = QString("\"%1\" open failed !").arg(fileName);
+			}
+				
+
+			Setting::BusAPI::instance()->appendRecentFile(fileName);
+			_mainWindow->updateRecentMenu();
+			
+		}
+		else
+		{
+			if (success)
+			{
+				Setting::BusAPI::instance()->appendRecentFile(fileName);
+				_mainWindow->setCurrentFile(fileName);
+				QString md5 = getMD5();
+				_mainWindow->setMD5(md5);
+				_mainWindow->updateRecentMenu();
+				m.message = QString("\"%1\" has been Saved !").arg(fileName);
+			}
+			else
+			{
+				m.message = QString("\"%1\" save failed !").arg(fileName);
+			}
+
+		}
+
+		emit _mainWindow->printMessageToMessageWindow(m);
+		Py::PythonAagent::getInstance()->unLock();
+	}
+
 	void SignalHandler::saveToProjectFile(QString filename)
 	{
 		//add a writer
-		IO::ProjectFileIO writer(filename);
-		if (!writer.write())
-		{
-			QMessageBox::warning(_mainWindow, tr("Warning"), tr("Write Failed !"));
-			return;
-		}
-		Setting::BusAPI::instance()->appendRecentFile(filename);
-		_mainWindow->setCurrentFile(filename);
-		QString md5 = getMD5();
-		_mainWindow->setMD5(md5);
-		_mainWindow->updateRecentMenu();
-		Py::PythonAagent::getInstance()->unLock();
+		IO::ProjectFileIO* writer = new IO::ProjectFileIO( _mainWindow, this,filename, false);
+		ModuleBase::ThreadControl* tc = new ModuleBase::ThreadControl(writer);
+		emit tc->threadStart();
 	}
+
 	void SignalHandler::on_actionSolve()
 	{
 		
 	}
+
 	void SignalHandler::on_actionEnglish()
 	{
 		_mainWindow->ChangeLanguage("English");
 	}
+
 	void SignalHandler::on_actionChinese()
 	{
 		_mainWindow->ChangeLanguage("Chinese");
@@ -234,135 +267,47 @@ namespace GUI
 		case 0:
 // 			Post3D::Post3DWindow* w = _mainWindow->getPostWindowByID(proID);
 // 			if (w == nullptr) return;
-// 			w->showWindow();
-			
+// 			w->showWindow();			
 			break;
-
 		}
 	}
+
 	void SignalHandler::handleSingleClickEvent(QTreeWidgetItem*item, int proID)
 	{
 		Q_UNUSED(item);
 		Q_UNUSED(proID);
 	}
-	bool SignalHandler::importMesh(const QStringList &filenames)
+
+	bool SignalHandler::importMeshSlot(const QString& fileName, const QString& suffix, int modelId)
 	{
-
-		for (int i = 0; i < filenames.size(); ++i)
+		IMPORTMESHFUN fp = IO::IOConfigure::getMeshImporter(suffix);
+		if (!fp)
 		{
-			QString filename = filenames.at(i);
-			QFileInfo info(filename);
-			QString suffix = info.suffix().toLower();
 			ModuleBase::Message m;
-			if (suffix == "vtk" || suffix == "stl" ||suffix == "dat")
-			{
-				MeshData::VTKReader reader(filename);
-				if (!reader.read())
-				{
-					
-					m.type = ModuleBase::Error_Message;
-					m.message = QString("Failed import Mesh From \"%1\"").arg(filename);
-					emit _mainWindow->printMessageToMessageWindow(m);
-					continue;
-				}
-				m.type = ModuleBase::Normal_Message;
-				m.message = QString("Import Mesh From \"%1\"").arg(filename);
-				emit _mainWindow->printMessageToMessageWindow(m);
-			}
-			else if (suffix == "neu")
-			{
-				MeshData::NeuReader reader(filename);
-				if (!reader.read())
-				{
-					m.type = ModuleBase::Error_Message;
-					m.message = QString("Failed import Mesh From \"%1\"").arg(filename);
-					emit _mainWindow->printMessageToMessageWindow(m);
-					continue;
-				}
-				m.type = ModuleBase::Normal_Message;
-				m.message = QString("Import Mesh From \"%1\"").arg(filename);
-				emit _mainWindow->printMessageToMessageWindow(m);
-			}
-			else if (suffix == "msh")
-			{
-				MeshData::MshReader reader(filename);
-				if (!reader.read())
-				{
-					m.type = ModuleBase::Error_Message;
-					m.message = QString("Failed import Mesh From \"%1\"").arg(filename);
-					emit _mainWindow->printMessageToMessageWindow(m);
-					continue;
-				}
-				m.type = ModuleBase::Normal_Message;
-				m.message = QString("Import Mesh From \"%1\"").arg(filename);
-				emit _mainWindow->printMessageToMessageWindow(m);
-			}
-			else if (suffix == "cgns")
-			{
-				MeshData::CgnsReader reader(filename);
-				if (!reader.read())
-				{
-					m.type = ModuleBase::Error_Message;
-					m.message = QString("Failed import Mesh From \"%1\"").arg(filename);
-					emit _mainWindow->printMessageToMessageWindow(m);
-					continue;
-				}
-				m.type = ModuleBase::Normal_Message;
-				m.message = QString("Import Mesh From \"%1\"").arg(filename);
-				emit _mainWindow->printMessageToMessageWindow(m);
-			}
-			else if (suffix == "inp")
-			{
-				MeshData::InpReader reader(filename);
-				if (!reader.read())
-				{
-					m.type = ModuleBase::Error_Message;
-					m.message = QString("Failed import Mesh From \"%1\"").arg(filename);
-					emit _mainWindow->printMessageToMessageWindow(m);
-					continue;
-				}
-				m.type = ModuleBase::Normal_Message;
-				m.message = QString("Import Mesh From \"%1\"").arg(filename);
-				emit _mainWindow->printMessageToMessageWindow(m);
-			}
-			else if (suffix == "cntm")
-			{
-				MeshData::CntmReader reader(filename);
-				if (!reader.read())
-				{
-					m.type = ModuleBase::Error_Message;
-					m.message = QString("Failed import Mesh From \"%1\"").arg(filename);
-					emit _mainWindow->printMessageToMessageWindow(m);
-					continue;
-				}
-				m.type = ModuleBase::Normal_Message;
-				m.message = QString("Import Mesh From \"%1\"").arg(filename);
-				emit _mainWindow->printMessageToMessageWindow(m);
-			}
-			else
-			{
-				//插件注册的方法
-				IMPORTMESHFUN fun = IO::IOConfigure::getMeshImporter(suffix);
-				if (fun == nullptr) continue;
-				bool ok = fun(filename);
-				if (!ok)
-				{
-					m.type = ModuleBase::Error_Message;
-					m.message = QString("Failed import Mesh From \"%1\"").arg(filename);
-					emit _mainWindow->printMessageToMessageWindow(m);
-					continue;
-				}
-				m.type = ModuleBase::Normal_Message;
-				m.message = QString("Import Mesh From \"%1\"").arg(filename);
-				emit _mainWindow->printMessageToMessageWindow(m);
-
-			}
+			m.type = ModuleBase::Error_Message;
+			m.message = QString("\"%1\" interface has not been registered !").arg(suffix);
+			emit _mainWindow->printMessageToMessageWindow(m);
+			return false;
 		}
-		MeshData::MeshData::getInstance()->generateDisplayDataSet();
-		Py::PythonAagent::getInstance()->unLock();
+		fp(fileName, modelId);
 		return true;
-
 	}
+
+	bool SignalHandler::exportMeshSlot(const QString& fileName, const QString& suffix, int modelId)
+	{
+		EXPORTMESHFUN fp = IO::IOConfigure::getMeshExporter(suffix);
+		if (!fp)
+		{
+			ModuleBase::Message m;
+			m.type = ModuleBase::Error_Message;
+			m.message = QString("\"%1\" interface has not been registered !").arg(suffix);
+			emit _mainWindow->printMessageToMessageWindow(m);
+			return false;
+		}
+		fp(fileName, modelId);
+//		MeshData::MeshData::getInstance()->generateDisplayDataSet();
+	}
+
 	bool SignalHandler::importGeometry(const QStringList &filenames)
 	{
 		Command::GeoCommandImport* c = new Command::GeoCommandImport(_mainWindow, _mainWindow->getSubWindowManager()->getPreWindow());
@@ -397,7 +342,8 @@ namespace GUI
 		md5 = p + g + m;
 		return md5;
 	}
-	void SignalHandler::clearData()
+
+	void SignalHandler::clearData(bool unlock)
 	{
 		_mainWindow->clearWidgets();
 		ModelData::ModelDataSingleton::getinstance()->clear();
@@ -410,9 +356,10 @@ namespace GUI
 		emit _mainWindow->updateGeometryTreeSig();
 		emit _mainWindow->updatePhysicsTreeSignal();
 		emit _mainWindow->updateMaterialTreeSig();
-		
-		Py::PythonAagent::getInstance()->unLock();
+		if (unlock)
+			Py::PythonAagent::getInstance()->unLock();
 	}
+
 	void SignalHandler::solveProjectPy(int projectIndex, int solverIndex)
 	{
 		ModelData::ModelDataSingleton* modelData = ModelData::ModelDataSingleton::getinstance();
@@ -429,6 +376,7 @@ namespace GUI
 		qDebug() << pycode;
 		Py::PythonAagent::getInstance()->submit(pycode);
 	}
+
 	void SignalHandler::solveProject(int projectIndex, int solverIndex)
 	{
 		ModelData::ModelDataSingleton* modelData = ModelData::ModelDataSingleton::getinstance();
@@ -444,16 +392,25 @@ namespace GUI
 		solverControl->startSolver();
 		//Py::PythonAagent::getInstance()->unLock();
 	}
+
 	void SignalHandler::generateSurfaceMesh()
 	{
 		MainWidget::PreWindow* prewin = _mainWindow->getSubWindowManager()->getPreWindow();
 		Gmsh::GmshModule::getInstance(_mainWindow)->exec(1, prewin);
 	}
+
 	void SignalHandler::generateSolidMesh()
 	{
 		MainWidget::PreWindow* prewin = _mainWindow->getSubWindowManager()->getPreWindow();
 		Gmsh::GmshModule::getInstance(_mainWindow)->exec(2, prewin);
 	}
+
+	void SignalHandler::generateFluidMesh()
+	{
+		MainWidget::PreWindow* prewin = _mainWindow->getSubWindowManager()->getPreWindow();
+		Gmsh::GmshModule::getInstance(_mainWindow)->exec(0, prewin);
+	}
+
 	void SignalHandler::genMesh()
 	{
 		DataProperty::DataBase* info = nullptr;
@@ -465,6 +422,7 @@ namespace GUI
 		
 		emit _mainWindow->updateProperty(info);
 	}
+
 	void SignalHandler::appendGeneratedMesh(QString name, vtkDataSet* dataset)
 	{
 		MeshData::MeshKernal* k = new MeshData::MeshKernal;
@@ -478,59 +436,7 @@ namespace GUI
 		emit _mainWindow->printMessageToMessageWindow(m);
 		emit _mainWindow->updateMeshTreeSig();
 	}
-	void SignalHandler::exportMeshByID(QString filename, int kenerlID)
-	{
-		QFileInfo info(filename);
-		QString suffix = info.suffix().toLower();
-//		qDebug() << info.suffix();
-		auto exFun = IO::IOConfigure::getMeshExporter(suffix);
-		ModuleBase::Message m;
-		if (suffix == "neu")
-		{
-			MeshData::NeuReader writer(filename);
-			if (!(writer.write(kenerlID)))
-			{
-				m.type = ModuleBase::Error_Message;
-				m.message = QString(tr("Failed Export Mesh To \"%1\"")).arg(filename);
-				emit _mainWindow->printMessageToMessageWindow(m);
-			}
-			m.type = ModuleBase::Normal_Message;
-			m.message = QString(tr("Export Mesh To \"%1\"")).arg(filename);
-			emit _mainWindow->printMessageToMessageWindow(m);
-		}
-		else if (suffix == "vtk")
-		{
-			MeshData::VTKReader writer(filename);
-			if (!(writer.write(kenerlID)))
-			{
-				m.type = ModuleBase::Error_Message;
-				m.message = QString(tr("Failed Export Mesh To \"%1\"")).arg(filename);
-				emit _mainWindow->printMessageToMessageWindow(m);
-			}
-			m.type = ModuleBase::Normal_Message;
-			m.message = QString(tr("Export Mesh To \"%1\"")).arg(filename);
-			emit _mainWindow->printMessageToMessageWindow(m);
-		}
-		else if (exFun != nullptr)
-		{
-			bool ok = exFun(filename, kenerlID);
-			if (!ok)
-			{
-				m.type = ModuleBase::Error_Message;
-				m.message = QString(tr("Failed Export Mesh To \"%1\"")).arg(filename);
-				emit _mainWindow->printMessageToMessageWindow(m);
-			}
-			m.type = ModuleBase::Normal_Message;
-			m.message = QString(tr("Export Mesh To \"%1\"")).arg(filename);
-			emit _mainWindow->printMessageToMessageWindow(m);
-		}
-		else
-		{
-			m.type = ModuleBase::Error_Message;
-			m.message = QString(tr("Unsupport data format!"));
-			emit _mainWindow->printMessageToMessageWindow(m);
-		}
-	}
+
 	void SignalHandler::updateActionsStates()
 	{
 		Ui::MainWindow* ui = _mainWindow->getUi();
@@ -559,6 +465,7 @@ namespace GUI
 		ui->actionGenMesh->setEnabled(false);
 		ui->actionSurfaceMesh->setEnabled(false);
 		ui->actionSolidMesh->setEnabled(false);
+		ui->actionFluidMesh->setEnabled(false);
 		ui->actionExportMesh->setEnabled(false);
 		ui->actionSelectOff->setEnabled(false);
 		ui->actionDisplayNode->setEnabled(false);
@@ -567,6 +474,7 @@ namespace GUI
 		ui->actionDisplayWireFrame->setEnabled(false);
 		ui->actionCreate_Set->setEnabled(false);
 		ui->actionChecking->setEnabled(false);
+		ui->actionFilterMesh->setEnabled(false);
 		ui->actionDisplayPoint->setEnabled(false);
 		ui->actionDisplayCurve->setEnabled(false);
 		ui->actionDisplayFace->setEnabled(false);
@@ -574,6 +482,9 @@ namespace GUI
 		ui->actionSelectCurve->setEnabled(false);
 		ui->actionSelectFace->setEnabled(false);
 		ui->actionSelectGeometryBody->setEnabled(false);
+		ui->actionCreateGeoComponent->setEnabled(false);
+		ui->actionVTKTranslation->setEnabled(false);
+
 		//打开可用Action
 		const int nMesh = meshData->getKernalCount();
 		const int ngeo = geoData->getGeometrySetCount();
@@ -610,6 +521,7 @@ namespace GUI
 		{
 			ui->actionSurfaceMesh->setEnabled(true);
 			ui->actionSolidMesh->setEnabled(true);
+			ui->actionFluidMesh->setEnabled(true);
 			ui->actionDisplayPoint->setEnabled(true);
 			ui->actionDisplayCurve->setEnabled(true);
 			ui->actionDisplayFace->setEnabled(true);
@@ -618,9 +530,11 @@ namespace GUI
 			ui->actionSelectCurve->setEnabled(true);
 			ui->actionSelectFace->setEnabled(true);
 			ui->actionSelectGeometryBody->setEnabled(true);
+			ui->actionCreateGeoComponent->setEnabled(true);
 		}
 		if (nMesh >0 && subwins->isPreWindowOpened())
 		{
+			ui->actionFilterMesh->setEnabled(true);
 			ui->actionCreate_Set->setEnabled(true);
 			ui->actionChecking->setEnabled(true);
 			ui->actionExportMesh->setEnabled(true);
@@ -628,6 +542,7 @@ namespace GUI
 			ui->actionDisplaySurface->setEnabled(true);
 			ui->actionDisplaySurfaceEdge->setEnabled(true);
 			ui->actionDisplayWireFrame->setEnabled(true);
+			ui->actionVTKTranslation->setEnabled(true);
 		}
 		if (subwins->isPostWindowOpened())
 		{
@@ -647,11 +562,13 @@ namespace GUI
 		bool showGuidence = Setting::BusAPI::instance()->isEnableUserGuidence();
 
 	}
+
 	void SignalHandler::open2DPlotWindow()
 	{
 		QString pycode = QString("MainWindow.openPost2D()");
 		Py::PythonAagent::getInstance()->submit(pycode);
 	}
+
 	void SignalHandler::open3DGraphWindow()
 	{
 		QString pycode = QString("MainWindow.openPost3D()");
@@ -682,6 +599,7 @@ namespace GUI
 		emit _mainWindow->updateActionStatesSig();
 		act->setEnabled(false);
 	} 
+
 	void SignalHandler::closePostWindow(Post::PostWindowBase* p)
 	{ 
 		int id = p->getID();
@@ -735,12 +653,14 @@ namespace GUI
 		
 		//Command::GeoComandList::getInstance()->undo();
 	}
+
 	void SignalHandler::redo()
 	{
 		QString pycode = QString("MainWindow.redo()"); 
 		Py::PythonAagent::getInstance()->submit(pycode);
 		//Command::GeoComandList::getInstance()->redo();
 	}
+
 	void SignalHandler::createBox()
 	{
 		SubWindowManager* sw = _mainWindow->getSubWindowManager();
@@ -966,7 +886,6 @@ namespace GUI
 		this->showDialog(dlg);
 	}
 
-
 	void SignalHandler::CreateSweep()
 	{
 		SubWindowManager* sw = _mainWindow->getSubWindowManager();
@@ -1124,24 +1043,60 @@ namespace GUI
 		this->showDialog(dlg);
 	}
 
-	/*void SignalHandler::showDemo()
+	void SignalHandler::GeoSplitter()
 	{
-		QString pycode = QString("MainWindow.showFastCAE()");
-		Py::PythonAagent::getInstance()->submit(pycode);
-	}*/
 
+		SubWindowManager* sw = _mainWindow->getSubWindowManager();
+		if (!sw->isPreWindowOpened())
+		{
+			QMessageBox::warning(_mainWindow, tr("Warning"), tr("Open PreWindow First!"));
+			return;
+		}
+		MainWidget::PreWindow *p = sw->getPreWindow();
+		GeometryWidget::GeoSplitterDialog* dlg = new GeometryWidget::GeoSplitterDialog(_mainWindow, p);
+		this->showDialog(dlg);
+	}
+
+	void SignalHandler::MakeFillHole()
+	{
+		SubWindowManager* sw = _mainWindow->getSubWindowManager();
+		if (!sw->isPreWindowOpened())
+		{
+			QMessageBox::warning(_mainWindow, tr("Warning"), tr("Open PreWindow First!"));
+			return;
+		}
+		MainWidget::PreWindow *p = sw->getPreWindow();
+		GeometryWidget::MakeFillHoleDialog* dlg = new GeometryWidget::MakeFillHoleDialog(_mainWindow, p);
+		this->showDialog(dlg);
+	}
+
+	void SignalHandler::MakeRemoveSurface()
+	{
+		SubWindowManager* sw = _mainWindow->getSubWindowManager();
+		if (!sw->isPreWindowOpened())
+		{
+			QMessageBox::warning(_mainWindow, tr("Warning"), tr("Open PreWindow First!"));
+			return;
+		}
+		MainWidget::PreWindow *p = sw->getPreWindow();
+		GeometryWidget::MakeRemoveSurfaceDialog* dlg = new GeometryWidget::MakeRemoveSurfaceDialog(_mainWindow, p);
+		this->showDialog(dlg);
+	}
+	void SignalHandler::MakeFillGap()
+	{
+		SubWindowManager* sw = _mainWindow->getSubWindowManager();
+		if (!sw->isPreWindowOpened())
+		{
+			QMessageBox::warning(_mainWindow, tr("Warning"), tr("Open PreWindow First!"));
+			return;
+		}
+		MainWidget::PreWindow *p = sw->getPreWindow();
+		GeometryWidget::MakeFillGapDialog* dlg = new GeometryWidget::MakeFillGapDialog(_mainWindow, p);
+		this->showDialog(dlg);
+	}
 	void SignalHandler::openPreWinPy()
 	{
 		QString pycode = QString("MainWindow.openPreWindow()");
 		Py::PythonAagent::getInstance()->submit(pycode);
-	}
-	
-	void SignalHandler::exportMeshPy(QString filename)
-	{
-		this->exportMeshByID(filename, -1);
-		Py::PythonAagent::getInstance()->unLock();
-	}
-	
-
-
+	}	
 }
