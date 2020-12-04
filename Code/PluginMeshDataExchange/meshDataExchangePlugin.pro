@@ -75,7 +75,7 @@ unix{
                      ../SelfDefObject \
 					 
   CONFIG          += plugin
-  DESTDIR         = ../../output/bin
+  DESTDIR         = ../../output/bin/plugins
   MOC_DIR         = ./release/moc
   UI_DIR          = ./release/qui
   RCC_DIR         = ./release/rcc
