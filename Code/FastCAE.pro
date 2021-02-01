@@ -3,6 +3,7 @@ TEMPLATE = subdirs
 #FastCAE essential project 
 
 SUBDIRS += $$PWD/python/python.pro \
+		   $$PWD/SARibbonBar/SARibbonBar.pro \
            $$PWD/settings/setting.pro \
            $$PWD/DataProperty/DataProperty.pro \
 		   $$PWD/meshData/meshData.pro \
@@ -32,6 +33,13 @@ SUBDIRS += $$PWD/python/python.pro \
 		   $$PWD/UserGuidence/UserGuidence.pro \
 		   $$PWD/mainWindow/mainWindow.pro \
 		   $$PWD/main/main.pro \
+		   
+win32{
+SUBDIRS += $$PWD/License/License.pro \
+		   $$PWD/XGenerateReport/XGenerateReport.pro \
+}
+		   
+		   
 		   
 #FastCAE Plugins 
 

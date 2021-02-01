@@ -5,11 +5,20 @@ INCLUDEPATH	+=  ../../cgns/include  \
 Debug:LIBS +=  -L../../cgns/libd/ \
 -lcgns   \    
 -lcgnsdll \
-
+-llibhdf5_D	\
+-llibhdf5_cpp_D	\
+-llibhdf5_hl_D	\
+-llibhdf5_hl_cpp_D	\
+-llibhdf5_tools_D	\
 
 Release:LIBS +=  -L../../cgns/lib/ \
 -lcgns   \    
 -lcgnsdll \
+-llibhdf5	\
+-llibhdf5_cpp	\
+-llibhdf5_hl	\
+-llibhdf5_hl_cpp	\
+-llibhdf5_tools	\
 
 }
 

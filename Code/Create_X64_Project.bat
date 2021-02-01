@@ -2,8 +2,7 @@
 call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64 10.0.17763.0
 
 SET "PATH=C:\Qt\Qt5.14.2\5.14.2\msvc2017_64\bin\;C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.16.27023\bin\Hostx64\x64;%PATH%"  
- 
-qmake -tp vc FastCAE.pro
+
 
 cd BCBase 
 qmake CONFIG+=X64 -tp vc BCBase.pro 
@@ -125,7 +124,12 @@ qmake CONFIG+=X64 -tp vc UserGuidence.pro
 cd ..\XGenerateReport 
 qmake CONFIG+=X64 -tp vc XGenerateReport.pro 
 
+cd ..\SARibbonBar 
+qmake CONFIG+=X64 -tp vc SARibbonBar.pro 
+
 cd ..\
+qmake -tp vc FastCAE.pro
+
 copy /y ".\python\py\*.py" "..\output\bin_d"
 copy /y ".\python\py\*.py" "..\output\bin"
   

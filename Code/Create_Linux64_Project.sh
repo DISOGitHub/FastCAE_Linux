@@ -8,6 +8,10 @@ cd ../settings
 qmake -o Makefile setting.pro
 make ver=release
 
+cd ../SARibbonBar
+qmake -o Makefile SARibbonBar.pro
+make ver=release
+
 cd ../DataProperty
 qmake -o Makefile DataProperty.pro
 make ver=release
