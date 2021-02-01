@@ -17,9 +17,6 @@ chmod +x Copy_Pys.sh
 chmod +x Create_Linux64_Project.sh
 ./Create_Linux64_Project.sh
 
-chmod +x Create_Linux_Plugin.sh
-./Create_Linux_Plugin.sh
-
 cd $path/output/bin
 if [ ! -e "FastCAE" ]
     then 
