@@ -1,4 +1,4 @@
-﻿<RCC>
+<RCC>
     <qresource prefix="/">
         <file>images/about.png</file>
         <file>images/help.png</file>
