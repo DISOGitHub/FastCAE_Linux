@@ -82,6 +82,6 @@ unix{
 	
   message("Linux GraphicsAnalyse build")
 }
-RESOURCES += ./resource.qrc
+RESOURCES += ./res.qrc
 
 TRANSLATIONS += ../translations/GraphicsAnalyse_zh_CN.ts

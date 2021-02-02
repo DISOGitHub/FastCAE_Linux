@@ -225,6 +225,6 @@ FORMS += \
 	$$PWD/exportfiledialog.ui \
     $$PWD/calfilterpropform.ui
 
-RESOURCES += resource.qrc
+#RESOURCES += resource.qrc
     
 	
